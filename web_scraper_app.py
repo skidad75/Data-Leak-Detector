@@ -3,6 +3,7 @@ import pandas as pd
 import requests
 from urllib.parse import urlparse
 import socket
+import lxml  # Add this import
 
 def is_valid_url(url):
     try:
