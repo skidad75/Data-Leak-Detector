@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import requests
-from bs4 import BeautifulSoup
 from urllib.parse import urlparse
 import socket
 
@@ -22,29 +21,12 @@ def is_valid_ip(ip):
 def scrape_website(url):
     try:
         response = requests.get(url)
-        soup = BeautifulSoup(response.content, 'html.parser')
-        tables = soup.find_all('table')
+        dfs = pd.read_html(response.text)
         
-        if not tables:
+        if not dfs:
             return None, "No tables found on the webpage."
         
-        all_data = []
-        for table in tables:
-            data = []
-            table_header = []
-            rows = table.find_all('tr')
-            
-            for i, row in enumerate(rows):
-                cols = row.find_all(['th', 'td'])
-                if i == 0:
-                    table_header = [ele.text.strip() for ele in cols]
-                else:
-                    data.append([ele.text.strip() for ele in cols])
-            
-            df = pd.DataFrame(data, columns=table_header)
-            all_data.append(df)
-        
-        return pd.concat(all_data, ignore_index=True), None
+        return pd.concat(dfs, ignore_index=True), None
     except Exception as e:
         return None, f"An error occurred: {str(e)}"
 
