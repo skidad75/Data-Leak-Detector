@@ -1,0 +1,16 @@
+name: scraper
+channels:
+- anaconda
+- conda-forge
+- defaults
+dependencies:
+  - python=3.9
+  - pip
+  - pip:
+    - streamlit
+    - streamlit_extras
+    - pandas
+    - requests
+    - bs4
+    - urllib.parse
+    - socket
