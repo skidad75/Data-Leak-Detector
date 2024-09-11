@@ -13,3 +13,5 @@ dependencies:
     - beautifulsoup4
     - lxml
     - html5lib
+    - selenium
+    - webdriver_manager
