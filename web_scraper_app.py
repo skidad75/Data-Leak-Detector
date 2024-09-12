@@ -31,10 +31,10 @@ def perform_dns_lookup(domain):
         return "DNS lookup failed"
 
 def perform_traceroute(domain):
+    route_data = []
     try:
         result = subprocess.run(['traceroute', '-m', '30', domain], capture_output=True, text=True, timeout=10)
         lines = result.stdout.split('\n')[1:-1]  # Skip the first line (header) and last line (empty)
-        route_data = []
         for line in lines:
             parts = line.split()
             if len(parts) >= 3:
@@ -42,13 +42,12 @@ def perform_traceroute(domain):
                 ip = parts[2] if parts[2] != '*' else 'N/A'
                 hostname = parts[1] if parts[1] != '*' else 'N/A'
                 route_data.append({"Hop": hop, "IP": ip, "Hostname": hostname})
-        return pd.DataFrame(route_data)
     except subprocess.TimeoutExpired:
         st.warning("Traceroute timed out, partial results may be available")
-        return pd.DataFrame(route_data) if route_data else None
     except Exception as e:
         st.error(f"Traceroute error: {str(e)}")
-    return None
+    
+    return pd.DataFrame(route_data) if route_data else None
 
 def scrape_website(url, max_pages):
     service = Service(ChromeDriverManager().install())
