@@ -1,8 +1,4 @@
 import streamlit as st
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
-from bs4 import BeautifulSoup
 import pandas as pd
 import re
 from urllib.parse import urljoin, urlparse
@@ -11,15 +7,14 @@ import time
 import socket
 import whois
 import requests
+from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def is_valid(url):
     parsed = urlparse(url)
     return bool(parsed.netloc) and bool(parsed.scheme)
 
-def get_all_links(url, driver):
-    driver.get(url)
-    soup = BeautifulSoup(driver.page_source, 'html.parser')
+def get_all_links(url, soup):
     return [urljoin(url, link.get('href')) for link in soup.find_all('a') if link.get('href')]
 
 def extract_emails(text):
@@ -38,8 +33,8 @@ def perform_whois_lookup(domain):
         w = whois.whois(domain)
         return {
             "Registrar": w.registrar,
-            "Creation Date": w.creation_date,
-            "Expiration Date": w.expiration_date,
+            "Creation Date": str(w.creation_date),
+            "Expiration Date": str(w.expiration_date),
             "Name Servers": w.name_servers
         }
     except Exception as e:
@@ -57,10 +52,10 @@ def perform_port_scan(ip, ports):
     return open_ports
 
 def perform_traceroute(domain):
-    route_data = []  # Initialize route_data before the try block
+    route_data = []
     try:
         result = subprocess.run(['traceroute', '-m', '30', domain], capture_output=True, text=True, timeout=10)
-        lines = result.stdout.split('\n')[1:-1]  # Skip the first line (header) and last line (empty)
+        lines = result.stdout.split('\n')[1:-1]
         for line in lines:
             parts = line.split()
             if len(parts) >= 3:
@@ -75,42 +70,28 @@ def perform_traceroute(domain):
     
     return pd.DataFrame(route_data) if route_data else None
 
-def find_login_pages(url, driver, max_pages=10):
-    visited = set()
-    to_visit = [url]
-    login_pages = []
-    base_domain = urlparse(url).netloc
-
-    while to_visit and len(login_pages) < max_pages:
-        current_url = to_visit.pop(0)
-        if current_url not in visited and urlparse(current_url).netloc == base_domain:
-            visited.add(current_url)
-            driver.get(current_url)
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
-            
-            # Check if the page might be a login page
-            if is_potential_login_page(soup):
-                login_pages.append(current_url)
-            
-            # Get new links to visit
-            links = get_all_links(current_url, driver)
-            to_visit.extend(link for link in links if is_valid(link) and link not in visited)
-
-    return login_pages[:max_pages]
-
 def is_potential_login_page(soup):
-    # Check for common login page indicators
     login_keywords = ['login', 'sign in', 'signin', 'log in', 'username', 'password']
     page_text = soup.get_text().lower()
     
     if any(keyword in page_text for keyword in login_keywords):
         return True
     
-    # Check for password input fields
     if soup.find('input', {'type': 'password'}):
         return True
     
     return False
+
+@st.cache_data(show_spinner=False)
+def get_page_info(url):
+    try:
+        response = requests.get(url, timeout=5)
+        ip = socket.gethostbyname(urlparse(url).netloc)
+        fqdn = socket.getfqdn(urlparse(url).netloc)
+        server = response.headers.get('Server', 'Unknown')
+        return {'URL': url, 'IP': ip, 'FQDN': fqdn, 'Server': server}
+    except Exception as e:
+        return {'URL': url, 'IP': 'N/A', 'FQDN': 'N/A', 'Server': 'Error'}
 
 @st.cache_data(show_spinner=False)
 def perform_network_analysis(domain):
@@ -133,23 +114,7 @@ def perform_network_analysis(domain):
         "Traceroute": traceroute_data
     }
 
-@st.cache_data(show_spinner=False)
-def get_page_info(url):
-    try:
-        response = requests.get(url, timeout=5)
-        ip = socket.gethostbyname(urlparse(url).netloc)
-        fqdn = socket.getfqdn(urlparse(url).netloc)
-        server = response.headers.get('Server', 'Unknown')
-        return {'URL': url, 'IP': ip, 'FQDN': fqdn, 'Server': server}
-    except Exception as e:
-        return {'URL': url, 'IP': 'N/A', 'FQDN': 'N/A', 'Server': 'Error'}
-
 def load_data(url, max_pages):
-    service = Service(ChromeDriverManager().install())
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    driver = webdriver.Chrome(service=service, options=options)
-    
     emails = set()
     login_pages = []
     visited = set()
@@ -169,8 +134,8 @@ def load_data(url, max_pages):
             current_url = to_visit.pop(0)
             if current_url not in visited and urlparse(current_url).netloc == base_domain:
                 visited.add(current_url)
-                driver.get(current_url)
-                soup = BeautifulSoup(driver.page_source, 'html.parser')
+                response = requests.get(current_url, timeout=10)
+                soup = BeautifulSoup(response.text, 'html.parser')
                 
                 # Extract emails from the current page
                 page_emails = extract_emails(soup.get_text())
@@ -181,7 +146,7 @@ def load_data(url, max_pages):
                     login_pages.append(current_url)
                 
                 # Get new links to visit
-                links = get_all_links(current_url, driver)
+                links = get_all_links(current_url, soup)
                 to_visit.extend(link for link in links if is_valid(link) and link not in visited)
 
             progress = (i + 1) / max_pages
@@ -201,8 +166,6 @@ def load_data(url, max_pages):
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
-    finally:
-        driver.quit()
 
     return df_emails, df_login_pages if 'df_login_pages' in locals() else None
 
