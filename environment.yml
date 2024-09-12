@@ -5,13 +5,15 @@ channels:
 dependencies:
   - python=3.12
   - pip
+  - streamlit
+  - pandas
+  - requests
+  - beautifulsoup4
+  - lxml
+  - html5lib
+  - selenium
+  - urllib3
   - pip:
-    - streamlit
     - streamlit_extras
-    - pandas
-    - requests
-    - beautifulsoup4
-    - lxml
-    - html5lib
-    - selenium
     - webdriver_manager
+    - scapy
