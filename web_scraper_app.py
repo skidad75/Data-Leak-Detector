@@ -65,10 +65,12 @@ def scrape_website(url, max_pages):
         status_text = st.empty()
         
         start_time = time.time()
-        max_duration = 59  # Maximum duration in seconds
+        max_duration_per_page = 59  # Maximum duration per page in seconds
 
         for i in range(max_pages):
-            if not to_visit or (time.time() - start_time) > max_duration:
+            page_start_time = time.time()
+            
+            if not to_visit:
                 break
             
             current_url = to_visit.pop(0)
@@ -85,19 +87,15 @@ def scrape_website(url, max_pages):
                 links = get_all_links(current_url, driver)
                 to_visit.extend(link for link in links if is_valid(link) and link not in visited)
 
+            elapsed_time = time.time() - page_start_time
             progress = min((i + 1) / max_pages, 1.0)
-            elapsed_time = time.time() - start_time
-            time_progress = min(elapsed_time / max_duration, 1.0)
-            overall_progress = (progress + time_progress) / 2  # Combine page and time progress
             
-            progress_bar.progress(overall_progress)
-            status_text.text(f"Scraped {i + 1} pages out of {max_pages} | {overall_progress:.1%} complete | Time: {elapsed_time:.1f}s")
+            progress_bar.progress(progress)
+            status_text.text(f"Scraped {i + 1} pages out of {max_pages} | {progress:.1%} complete | Time: {elapsed_time:.1f}s")
 
-            if elapsed_time > max_duration:
-                st.warning(f"Scraping stopped after {max_duration} seconds")
-                break
-
-            time.sleep(0.1)  # To prevent overwhelming the server
+            # Wait until 59 seconds have passed for this page
+            if elapsed_time < max_duration_per_page:
+                time.sleep(max_duration_per_page - elapsed_time)
 
         email_list = list(emails)
         df_emails = pd.DataFrame({'Email': email_list})
@@ -115,7 +113,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     input_url = st.text_input("Enter the URL to scrape:")
-    max_pages = st.number_input("Maximum number of pages to scrape:", min_value=1, value=10)
+    max_pages = st.number_input("Number of pages to scrape:", min_value=1, max_value=5, value=1)
 
 with col2:
     st.subheader("CSV Export Settings")
@@ -124,6 +122,7 @@ with col2:
     
 if st.button("Scrape and Analyze"):
     if input_url:
+        start_time = time.time()
         df_emails, error = scrape_website(input_url, max_pages)
         
         if error:
