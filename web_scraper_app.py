@@ -112,83 +112,7 @@ def is_potential_login_page(soup):
     
     return False
 
-def get_page_info(url):
-    try:
-        response = requests.get(url, timeout=5)
-        ip = socket.gethostbyname(urlparse(url).netloc)
-        fqdn = socket.getfqdn(urlparse(url).netloc)
-        server = response.headers.get('Server', 'Unknown')
-        return {'URL': url, 'IP': ip, 'FQDN': fqdn, 'Server': server}
-    except Exception as e:
-        return {'URL': url, 'IP': 'N/A', 'FQDN': 'N/A', 'Server': 'Error'}
-
-@st.cache_data
-def load_data(url, max_pages):
-    service = Service(ChromeDriverManager().install())
-    options = webdriver.ChromeOptions()
-    options.add_argument('--headless')
-    driver = webdriver.Chrome(service=service, options=options)
-    
-    try:
-        visited = set()
-        to_visit = [url]
-        emails = set()
-        base_domain = urlparse(url).netloc
-
-        progress_bar = st.progress(0)
-        status_text = st.empty()
-        
-        start_time = time.time()
-        max_duration = 59  # Maximum total duration in seconds
-
-        for i in range(max_pages):
-            if not to_visit or (time.time() - start_time) > max_duration:
-                break
-            
-            current_url = to_visit.pop(0)
-            if current_url not in visited and urlparse(current_url).netloc == base_domain:
-                visited.add(current_url)
-                driver.get(current_url)
-                soup = BeautifulSoup(driver.page_source, 'html.parser')
-                
-                # Extract emails from the current page
-                page_emails = extract_emails(soup.get_text())
-                emails.update(page_emails)
-                
-                # Get new links to visit
-                links = get_all_links(current_url, driver)
-                to_visit.extend(link for link in links if is_valid(link) and link not in visited)
-
-            progress = min((i + 1) / max_pages, 1.0)
-            elapsed_time = time.time() - start_time
-            time_progress = min(elapsed_time / max_duration, 1.0)
-            overall_progress = max(progress, time_progress)
-            
-            progress_bar.progress(overall_progress)
-            status_text.text(f"Scraped {i + 1} pages out of {max_pages} | {overall_progress:.1%} complete | Time: {elapsed_time:.1f}s")
-
-            if elapsed_time > max_duration:
-                st.warning(f"Scraping stopped after {max_duration} seconds")
-                break
-
-        email_list = list(emails)
-        df_emails = pd.DataFrame({'Email': email_list})
-        
-        # Find login pages
-        login_pages = find_login_pages(url, driver)
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            login_page_info = list(executor.map(get_page_info, login_pages))
-        
-        df_login_pages = pd.DataFrame(login_page_info)
-        
-        return df_emails, df_login_pages, time.time() - start_time
-    except Exception as e:
-        st.error(f"An error occurred: {str(e)}")
-        return None, None, time.time() - start_time
-    finally:
-        driver.quit()
-
-@st.cache_data
+@st.cache_data(show_spinner=False)
 def perform_network_analysis(domain):
     ip_address = perform_dns_lookup(domain)
     whois_info = perform_whois_lookup(domain)
@@ -196,7 +120,7 @@ def perform_network_analysis(domain):
     common_ports = [80, 443, 22, 21, 25, 53, 3306, 8080, 8443]
     open_ports = perform_port_scan(ip_address, common_ports)
     
-    headers = requests.get(f"http://{domain}").headers
+    headers = requests.get(f"http://{domain}", timeout=5).headers
     server_info = headers.get('Server', 'Not available')
     
     traceroute_data = perform_traceroute(domain)
@@ -209,6 +133,79 @@ def perform_network_analysis(domain):
         "Traceroute": traceroute_data
     }
 
+@st.cache_data(show_spinner=False)
+def get_page_info(url):
+    try:
+        response = requests.get(url, timeout=5)
+        ip = socket.gethostbyname(urlparse(url).netloc)
+        fqdn = socket.getfqdn(urlparse(url).netloc)
+        server = response.headers.get('Server', 'Unknown')
+        return {'URL': url, 'IP': ip, 'FQDN': fqdn, 'Server': server}
+    except Exception as e:
+        return {'URL': url, 'IP': 'N/A', 'FQDN': 'N/A', 'Server': 'Error'}
+
+def load_data(url, max_pages):
+    service = Service(ChromeDriverManager().install())
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    driver = webdriver.Chrome(service=service, options=options)
+    
+    emails = set()
+    login_pages = []
+    visited = set()
+    to_visit = [url]
+    base_domain = urlparse(url).netloc
+
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    email_placeholder = st.empty()
+    login_placeholder = st.empty()
+
+    try:
+        for i in range(max_pages):
+            if not to_visit:
+                break
+            
+            current_url = to_visit.pop(0)
+            if current_url not in visited and urlparse(current_url).netloc == base_domain:
+                visited.add(current_url)
+                driver.get(current_url)
+                soup = BeautifulSoup(driver.page_source, 'html.parser')
+                
+                # Extract emails from the current page
+                page_emails = extract_emails(soup.get_text())
+                emails.update(page_emails)
+                
+                # Check if the page might be a login page
+                if is_potential_login_page(soup):
+                    login_pages.append(current_url)
+                
+                # Get new links to visit
+                links = get_all_links(current_url, driver)
+                to_visit.extend(link for link in links if is_valid(link) and link not in visited)
+
+            progress = (i + 1) / max_pages
+            progress_bar.progress(progress)
+            status_text.text(f"Scraped {i + 1} pages out of {max_pages} | {progress:.1%} complete")
+
+            # Update email display
+            df_emails = pd.DataFrame({'Email': list(emails)})
+            email_placeholder.subheader("Emails Found (First 10)")
+            email_placeholder.dataframe(df_emails.head(10))
+
+            # Update login pages display
+            if login_pages:
+                df_login_pages = pd.DataFrame([get_page_info(page) for page in login_pages])
+                login_placeholder.subheader("Potential Login Pages (First 10)")
+                login_placeholder.dataframe(df_login_pages.head(10))
+
+    except Exception as e:
+        st.error(f"An error occurred: {str(e)}")
+    finally:
+        driver.quit()
+
+    return df_emails, df_login_pages if 'df_login_pages' in locals() else None
+
 st.set_page_config(layout="wide")
 st.title("Web Scraper, Email Harvester, and Network Analyzer")
 
@@ -216,76 +213,73 @@ col1, col2 = st.columns(2)
 
 with col1:
     input_url = st.text_input("Enter the URL to scrape:")
-    max_pages = st.number_input("Number of pages to scrape:", min_value=1, max_value=5, value=1)
+    max_pages = st.number_input("Number of pages to scrape:", min_value=1, max_value=10, value=5)
 
 with col2:
     st.subheader("CSV Export Settings")
     csv_separator = st.selectbox("CSV Separator:", [",", ";", "\t"])
     include_index = st.checkbox("Include Index in CSV", value=False)
-    
+
 if st.button("Scrape and Analyze"):
     if input_url:
-        df_emails, df_login_pages, elapsed_time = load_data(input_url, max_pages)
+        start_time = time.time()
         
-        if df_emails is not None:
-            st.success("Data scraped successfully!")
-            
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                # Display emails only if found
-                if not df_emails.empty:
-                    st.subheader("Emails Found (First 10)")
-                    st.dataframe(df_emails.head(10))
-                    
-                    # Export to CSV
-                    csv_emails = df_emails.to_csv(index=include_index, sep=csv_separator)
-                    
-                    st.download_button(
-                        label="Download All Emails CSV",
-                        data=csv_emails,
-                        file_name="scraped_emails.csv",
-                        mime="text/csv",
-                    )
-                else:
-                    st.warning("No emails found.")
-                
-                # Display login pages
-                if not df_login_pages.empty:
-                    st.subheader("Potential Login Pages (First 10)")
-                    st.dataframe(df_login_pages)
-                    
-                    # Export to CSV
-                    csv_login_pages = df_login_pages.to_csv(index=include_index, sep=csv_separator)
-                    
-                    st.download_button(
-                        label="Download Login Pages CSV",
-                        data=csv_login_pages,
-                        file_name="login_pages.csv",
-                        mime="text/csv",
-                    )
-                else:
-                    st.warning("No potential login pages found.")
-            
-            with col2:
-                # Perform network analysis
-                st.subheader("Network Analysis")
-                domain = urlparse(input_url).netloc
-                
-                network_info = perform_network_analysis(domain)
-                
-                st.write(f"IP Address: {network_info['IP Address']}")
-                st.write("WHOIS Information:")
-                st.json(network_info['WHOIS Info'])
-                st.write(f"Open Ports: {', '.join(map(str, network_info['Open Ports']))}")
-                st.write(f"Server Information: {network_info['Server Info']}")
-                
-                if network_info['Traceroute'] is not None:
-                    st.subheader("Traceroute")
-                    st.dataframe(network_info['Traceroute'])
-                else:
-                    st.warning("Traceroute data not available.")
+        # Start network analysis in a separate thread
+        with ThreadPoolExecutor() as executor:
+            network_future = executor.submit(perform_network_analysis, urlparse(input_url).netloc)
         
+        # Perform web scraping
+        df_emails, df_login_pages = load_data(input_url, max_pages)
+        
+        # Display results
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            if not df_emails.empty:
+                st.subheader("Emails Found (First 10)")
+                st.dataframe(df_emails.head(10))
+                
+                csv_emails = df_emails.to_csv(index=include_index, sep=csv_separator)
+                st.download_button(
+                    label="Download All Emails CSV",
+                    data=csv_emails,
+                    file_name="scraped_emails.csv",
+                    mime="text/csv",
+                )
+            else:
+                st.warning("No emails found.")
+            
+            if df_login_pages is not None and not df_login_pages.empty:
+                st.subheader("Potential Login Pages (First 10)")
+                st.dataframe(df_login_pages.head(10))
+                
+                csv_login_pages = df_login_pages.to_csv(index=include_index, sep=csv_separator)
+                st.download_button(
+                    label="Download Login Pages CSV",
+                    data=csv_login_pages,
+                    file_name="login_pages.csv",
+                    mime="text/csv",
+                )
+            else:
+                st.warning("No potential login pages found.")
+        
+        with col2:
+            st.subheader("Network Analysis")
+            network_info = network_future.result()  # Get the result of network analysis
+            
+            st.write(f"IP Address: {network_info['IP Address']}")
+            st.write("WHOIS Information:")
+            st.json(network_info['WHOIS Info'])
+            st.write(f"Open Ports: {', '.join(map(str, network_info['Open Ports']))}")
+            st.write(f"Server Information: {network_info['Server Info']}")
+            
+            if network_info['Traceroute'] is not None:
+                st.subheader("Traceroute")
+                st.dataframe(network_info['Traceroute'])
+            else:
+                st.warning("Traceroute data not available.")
+        
+        elapsed_time = time.time() - start_time
         st.write(f"Total time: {elapsed_time:.1f} seconds")
     else:
         st.warning("Please enter a URL.")
