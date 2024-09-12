@@ -75,6 +75,53 @@ def perform_traceroute(domain):
     
     return pd.DataFrame(route_data) if route_data else None
 
+def find_login_pages(url, driver, max_pages=10):
+    visited = set()
+    to_visit = [url]
+    login_pages = []
+    base_domain = urlparse(url).netloc
+
+    while to_visit and len(login_pages) < max_pages:
+        current_url = to_visit.pop(0)
+        if current_url not in visited and urlparse(current_url).netloc == base_domain:
+            visited.add(current_url)
+            driver.get(current_url)
+            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            
+            # Check if the page might be a login page
+            if is_potential_login_page(soup):
+                login_pages.append(current_url)
+            
+            # Get new links to visit
+            links = get_all_links(current_url, driver)
+            to_visit.extend(link for link in links if is_valid(link) and link not in visited)
+
+    return login_pages[:max_pages]
+
+def is_potential_login_page(soup):
+    # Check for common login page indicators
+    login_keywords = ['login', 'sign in', 'signin', 'log in', 'username', 'password']
+    page_text = soup.get_text().lower()
+    
+    if any(keyword in page_text for keyword in login_keywords):
+        return True
+    
+    # Check for password input fields
+    if soup.find('input', {'type': 'password'}):
+        return True
+    
+    return False
+
+def get_page_info(url):
+    try:
+        response = requests.get(url, timeout=5)
+        ip = socket.gethostbyname(urlparse(url).netloc)
+        fqdn = socket.getfqdn(urlparse(url).netloc)
+        server = response.headers.get('Server', 'Unknown')
+        return {'URL': url, 'IP': ip, 'FQDN': fqdn, 'Server': server}
+    except Exception as e:
+        return {'URL': url, 'IP': 'N/A', 'FQDN': 'N/A', 'Server': 'Error'}
+
 @st.cache_data
 def load_data(url, max_pages):
     service = Service(ChromeDriverManager().install())
@@ -127,10 +174,17 @@ def load_data(url, max_pages):
         email_list = list(emails)
         df_emails = pd.DataFrame({'Email': email_list})
         
-        return df_emails, time.time() - start_time
+        # Find login pages
+        login_pages = find_login_pages(url, driver)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            login_page_info = list(executor.map(get_page_info, login_pages))
+        
+        df_login_pages = pd.DataFrame(login_page_info)
+        
+        return df_emails, df_login_pages, time.time() - start_time
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
-        return None, time.time() - start_time
+        return None, None, time.time() - start_time
     finally:
         driver.quit()
 
@@ -171,7 +225,7 @@ with col2:
     
 if st.button("Scrape and Analyze"):
     if input_url:
-        df_emails, elapsed_time = load_data(input_url, max_pages)
+        df_emails, df_login_pages, elapsed_time = load_data(input_url, max_pages)
         
         if df_emails is not None:
             st.success("Data scraped successfully!")
@@ -195,6 +249,23 @@ if st.button("Scrape and Analyze"):
                     )
                 else:
                     st.warning("No emails found.")
+                
+                # Display login pages
+                if not df_login_pages.empty:
+                    st.subheader("Potential Login Pages (First 10)")
+                    st.dataframe(df_login_pages)
+                    
+                    # Export to CSV
+                    csv_login_pages = df_login_pages.to_csv(index=include_index, sep=csv_separator)
+                    
+                    st.download_button(
+                        label="Download Login Pages CSV",
+                        data=csv_login_pages,
+                        file_name="login_pages.csv",
+                        mime="text/csv",
+                    )
+                else:
+                    st.warning("No potential login pages found.")
             
             with col2:
                 # Perform network analysis
