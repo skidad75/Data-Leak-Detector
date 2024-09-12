@@ -9,6 +9,8 @@ import whois
 import requests
 from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import ssl
+import OpenSSL
 
 def is_valid(url):
     parsed = urlparse(url)
@@ -114,19 +116,76 @@ def perform_network_analysis(domain):
         "Traceroute": traceroute_data
     }
 
+def check_security_headers(url):
+    try:
+        response = requests.get(url, timeout=5)
+        headers = response.headers
+        security_headers = {
+            'Strict-Transport-Security': headers.get('Strict-Transport-Security', 'Not set'),
+            'X-Frame-Options': headers.get('X-Frame-Options', 'Not set'),
+            'X-XSS-Protection': headers.get('X-XSS-Protection', 'Not set'),
+            'X-Content-Type-Options': headers.get('X-Content-Type-Options', 'Not set'),
+            'Referrer-Policy': headers.get('Referrer-Policy', 'Not set'),
+            'Content-Security-Policy': headers.get('Content-Security-Policy', 'Not set')
+        }
+        return security_headers
+    except Exception as e:
+        return f"Error checking security headers: {str(e)}"
+
+def check_ssl_cert(url):
+    try:
+        hostname = urlparse(url).netloc
+        ctx = ssl.create_default_context()
+        with ctx.wrap_socket(socket.socket(), server_hostname=hostname) as s:
+            s.connect((hostname, 443))
+            cert = s.getpeercert()
+        
+        x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, s.getpeercert(binary_form=True))
+        cert_info = {
+            'Subject': dict(x509.get_subject().get_components()),
+            'Issuer': dict(x509.get_issuer().get_components()),
+            'Version': x509.get_version(),
+            'Serial Number': x509.get_serial_number(),
+            'Not Before': x509.get_notBefore(),
+            'Not After': x509.get_notAfter(),
+            'OCSP': cert.get('OCSP', 'Not available'),
+            'Subject Alt Names': cert.get('subjectAltName', 'Not available')
+        }
+        return cert_info
+    except Exception as e:
+        return f"Error checking SSL certificate: {str(e)}"
+
+def check_robots_txt(url):
+    try:
+        robots_url = urljoin(url, '/robots.txt')
+        response = requests.get(robots_url, timeout=5)
+        if response.status_code == 200:
+            return response.text
+        else:
+            return f"No robots.txt found (Status code: {response.status_code})"
+    except Exception as e:
+        return f"Error checking robots.txt: {str(e)}"
+
 def load_data(url, max_pages):
     emails = set()
     login_pages = []
     visited = set()
     to_visit = [url]
     base_domain = urlparse(url).netloc
+    security_info = {}
 
     progress_bar = st.progress(0)
     status_text = st.empty()
     email_placeholder = st.empty()
     login_placeholder = st.empty()
+    security_placeholder = st.empty()
 
     try:
+        # Check security headers, SSL cert, and robots.txt
+        security_info['Security Headers'] = check_security_headers(url)
+        security_info['SSL Certificate'] = check_ssl_cert(url)
+        security_info['Robots.txt'] = check_robots_txt(url)
+
         for i in range(min(max_pages, 5)):  # Limit to 5 pages
             if not to_visit:
                 break
@@ -164,10 +223,14 @@ def load_data(url, max_pages):
                 login_placeholder.subheader("Potential Login Pages (First 10)")
                 login_placeholder.dataframe(df_login_pages.head(10))
 
+            # Update security info display
+            security_placeholder.subheader("Security Information")
+            security_placeholder.json(security_info)
+
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
-    return df_emails, df_login_pages if 'df_login_pages' in locals() else None
+    return df_emails, df_login_pages if 'df_login_pages' in locals() else None, security_info
 
 @st.cache_data(show_spinner=False)
 def get_user_ip():
@@ -204,8 +267,8 @@ if st.button("Scrape and Analyze"):
         with ThreadPoolExecutor() as executor:
             network_future = executor.submit(perform_network_analysis, urlparse(input_url).netloc)
         
-        # Perform web scraping
-        df_emails, df_login_pages = load_data(input_url, max_pages)
+        # Perform web scraping and security checks
+        df_emails, df_login_pages, security_info = load_data(input_url, max_pages)
         
         # Display results
         col1, col2 = st.columns(2)
@@ -238,6 +301,9 @@ if st.button("Scrape and Analyze"):
                 )
             else:
                 st.warning("No potential login pages found.")
+            
+            st.subheader("Security Information")
+            st.json(security_info)
         
         with col2:
             st.subheader("Network Analysis")
@@ -254,6 +320,22 @@ if st.button("Scrape and Analyze"):
                 st.dataframe(network_info['Traceroute'])
             else:
                 st.warning("Traceroute data not available.")
+        
+        # Prepare all data for CSV export
+        all_data = {
+            "Emails": df_emails.to_dict(orient='records') if not df_emails.empty else [],
+            "Login Pages": df_login_pages.to_dict(orient='records') if df_login_pages is not None and not df_login_pages.empty else [],
+            "Security Info": security_info,
+            "Network Info": network_info
+        }
+        
+        csv_all_data = pd.json_normalize(all_data).to_csv(index=include_index, sep=csv_separator)
+        st.download_button(
+            label="Download All Data CSV",
+            data=csv_all_data,
+            file_name="all_scraped_data.csv",
+            mime="text/csv",
+        )
         
         elapsed_time = time.time() - start_time
         st.write(f"Total time: {elapsed_time:.1f} seconds")
