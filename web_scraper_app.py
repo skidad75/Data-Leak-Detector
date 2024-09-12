@@ -127,7 +127,7 @@ def load_data(url, max_pages):
     login_placeholder = st.empty()
 
     try:
-        for i in range(max_pages):
+        for i in range(min(max_pages, 5)):  # Limit to 5 pages
             if not to_visit:
                 break
             
@@ -149,9 +149,9 @@ def load_data(url, max_pages):
                 links = get_all_links(current_url, soup)
                 to_visit.extend(link for link in links if is_valid(link) and link not in visited)
 
-            progress = (i + 1) / max_pages
+            progress = (i + 1) / min(max_pages, 5)
             progress_bar.progress(progress)
-            status_text.text(f"Scraped {i + 1} pages out of {max_pages} | {progress:.1%} complete")
+            status_text.text(f"Scraped {i + 1} pages out of {min(max_pages, 5)} | {progress:.1%} complete")
 
             # Update email display
             df_emails = pd.DataFrame({'Email': list(emails)})
@@ -169,14 +169,27 @@ def load_data(url, max_pages):
 
     return df_emails, df_login_pages if 'df_login_pages' in locals() else None
 
+@st.cache_data(show_spinner=False)
+def get_user_ip():
+    try:
+        response = requests.get('https://api.ipify.org?format=json', timeout=5)
+        return response.json()['ip']
+    except:
+        return "Unable to retrieve IP"
+
 st.set_page_config(layout="wide")
 st.title("Web Scraper, Email Harvester, and Network Analyzer")
+
+# User IP and Warning Section
+user_ip = get_user_ip()
+st.warning(f"Your IP address: {user_ip}")
+st.warning("⚠️ This tool is for research and educational purposes only. Ensure you have permission to scan and analyze the target website. Unauthorized use may be illegal.")
 
 col1, col2 = st.columns(2)
 
 with col1:
     input_url = st.text_input("Enter the URL to scrape:")
-    max_pages = st.number_input("Number of pages to scrape:", min_value=1, max_value=10, value=5)
+    max_pages = st.number_input("Number of pages to scrape:", min_value=1, max_value=5, value=1)
 
 with col2:
     st.subheader("CSV Export Settings")
