@@ -57,10 +57,10 @@ def perform_port_scan(ip, ports):
     return open_ports
 
 def perform_traceroute(domain):
+    route_data = []  # Initialize route_data before the try block
     try:
         result = subprocess.run(['traceroute', '-m', '30', domain], capture_output=True, text=True, timeout=10)
         lines = result.stdout.split('\n')[1:-1]  # Skip the first line (header) and last line (empty)
-        route_data = []
         for line in lines:
             parts = line.split()
             if len(parts) >= 3:
@@ -68,16 +68,15 @@ def perform_traceroute(domain):
                 ip = parts[2] if parts[2] != '*' else 'N/A'
                 hostname = parts[1] if parts[1] != '*' else 'N/A'
                 route_data.append({"Hop": hop, "IP": ip, "Hostname": hostname})
-        return pd.DataFrame(route_data)
     except subprocess.TimeoutExpired:
         st.warning("Traceroute timed out, partial results may be available")
-        return pd.DataFrame(route_data) if route_data else None
     except Exception as e:
         st.error(f"Traceroute error: {str(e)}")
-    return None
+    
+    return pd.DataFrame(route_data) if route_data else None
 
 @st.cache_data
-def scrape_website(url, max_pages):
+def load_data(url, max_pages):
     service = Service(ChromeDriverManager().install())
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
@@ -122,16 +121,39 @@ def scrape_website(url, max_pages):
             status_text.text(f"Scraped {i + 1} pages out of {max_pages} | {overall_progress:.1%} complete | Time: {elapsed_time:.1f}s")
 
             if elapsed_time > max_duration:
-                st
+                st.warning(f"Scraping stopped after {max_duration} seconds")
+                break
 
         email_list = list(emails)
         df_emails = pd.DataFrame({'Email': email_list})
         
-        return df_emails, None
+        return df_emails, time.time() - start_time
     except Exception as e:
-        return None, f"An error occurred: {str(e)}"
+        st.error(f"An error occurred: {str(e)}")
+        return None, time.time() - start_time
     finally:
         driver.quit()
+
+@st.cache_data
+def perform_network_analysis(domain):
+    ip_address = perform_dns_lookup(domain)
+    whois_info = perform_whois_lookup(domain)
+    
+    common_ports = [80, 443, 22, 21, 25, 53, 3306, 8080, 8443]
+    open_ports = perform_port_scan(ip_address, common_ports)
+    
+    headers = requests.get(f"http://{domain}").headers
+    server_info = headers.get('Server', 'Not available')
+    
+    traceroute_data = perform_traceroute(domain)
+    
+    return {
+        "IP Address": ip_address,
+        "WHOIS Info": whois_info,
+        "Open Ports": open_ports,
+        "Server Info": server_info,
+        "Traceroute": traceroute_data
+    }
 
 st.set_page_config(layout="wide")
 st.title("Web Scraper, Email Harvester, and Network Analyzer")
@@ -149,19 +171,16 @@ with col2:
     
 if st.button("Scrape and Analyze"):
     if input_url:
-        start_time = time.time()
-        df_emails, error = scrape_website(input_url, max_pages)
+        df_emails, elapsed_time = load_data(input_url, max_pages)
         
-        if error:
-            st.error(error)
-        else:
+        if df_emails is not None:
             st.success("Data scraped successfully!")
             
             col1, col2 = st.columns(2)
             
             with col1:
                 # Display emails only if found
-                if df_emails is not None and not df_emails.empty:
+                if not df_emails.empty:
                     st.subheader("Emails Found (First 10)")
                     st.dataframe(df_emails.head(10))
                     
@@ -178,24 +197,26 @@ if st.button("Scrape and Analyze"):
                     st.warning("No emails found.")
             
             with col2:
-                # Perform traceroute
-                st.subheader("Network Traceroute")
+                # Perform network analysis
+                st.subheader("Network Analysis")
                 domain = urlparse(input_url).netloc
-                df_traceroute = perform_traceroute(domain)
                 
-                if df_traceroute is not None and not df_traceroute.empty:
-                    st.dataframe(df_traceroute)
-                    
-                    # Export traceroute to CSV
-                    csv_traceroute = df_traceroute.to_csv(index=include_index, sep=csv_separator)
-                    
-                    st.download_button(
-                        label="Download Traceroute CSV",
-                        data=csv_traceroute,
-                        file_name="traceroute.csv",
-                        mime="text/csv",
-                    )
+                network_info = perform_network_analysis(domain)
+                
+                st.write(f"IP Address: {network_info['IP Address']}")
+                st.write("WHOIS Information:")
+                st.json(network_info['WHOIS Info'])
+                st.write(f"Open Ports: {', '.join(map(str, network_info['Open Ports']))}")
+                st.write(f"Server Information: {network_info['Server Info']}")
+                
+                if network_info['Traceroute'] is not None:
+                    st.subheader("Traceroute")
+                    st.dataframe(network_info['Traceroute'])
                 else:
                     st.warning("Traceroute data not available.")
+        
+        st.write(f"Total time: {elapsed_time:.1f} seconds")
     else:
         st.warning("Please enter a URL.")
+
+st.button("Rerun")
