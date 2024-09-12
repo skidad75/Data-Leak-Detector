@@ -6,8 +6,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import re
 from urllib.parse import urljoin, urlparse
-from scapy.all import traceroute
-import socket
+import subprocess
 import time
 
 def is_valid(url):
@@ -25,20 +24,22 @@ def extract_emails(text):
 
 def perform_traceroute(domain):
     try:
-        result, _ = traceroute(domain, maxttl=30, timeout=2)
+        result = subprocess.run(['traceroute', '-m', '30', domain], capture_output=True, text=True, timeout=30)
+        lines = result.stdout.split('\n')[1:-1]  # Skip the first line (header) and last line (empty)
         route_data = []
-        for snd, rcv in result:
-            if rcv:
-                ip = rcv.src
-                try:
-                    hostname = socket.gethostbyaddr(ip)[0]
-                except socket.herror:
-                    hostname = "Unknown"
-                route_data.append({"Hop": snd.ttl, "IP": ip, "Hostname": hostname})
+        for line in lines:
+            parts = line.split()
+            if len(parts) >= 3:
+                hop = parts[0]
+                ip = parts[2] if parts[2] != '*' else 'N/A'
+                hostname = parts[1] if parts[1] != '*' else 'N/A'
+                route_data.append({"Hop": hop, "IP": ip, "Hostname": hostname})
         return pd.DataFrame(route_data)
+    except subprocess.TimeoutExpired:
+        st.error("Traceroute timed out")
     except Exception as e:
         st.error(f"Traceroute error: {str(e)}")
-        return None
+    return None
 
 def scrape_website(url, max_pages):
     service = Service(ChromeDriverManager().install())
@@ -54,9 +55,12 @@ def scrape_website(url, max_pages):
 
         progress_bar = st.progress(0)
         status_text = st.empty()
+        
+        start_time = time.time()
+        max_duration = 59  # Maximum duration in seconds
 
         for i in range(max_pages):
-            if not to_visit:
+            if not to_visit or (time.time() - start_time) > max_duration:
                 break
             
             current_url = to_visit.pop(0)
@@ -74,8 +78,17 @@ def scrape_website(url, max_pages):
                 to_visit.extend(link for link in links if is_valid(link) and link not in visited)
 
             progress = min((i + 1) / max_pages, 1.0)
-            progress_bar.progress(progress)
-            status_text.text(f"Scraped {i + 1} pages out of {max_pages}")
+            elapsed_time = time.time() - start_time
+            time_progress = min(elapsed_time / max_duration, 1.0)
+            overall_progress = (progress + time_progress) / 2  # Combine page and time progress
+            
+            progress_bar.progress(overall_progress)
+            status_text.text(f"Scraped {i + 1} pages out of {max_pages} | {overall_progress:.1%} complete | Time: {elapsed_time:.1f}s")
+
+            if elapsed_time > max_duration:
+                st.warning(f"Scraping stopped after {max_duration} seconds")
+                break
+
             time.sleep(0.1)  # To prevent overwhelming the server
 
         email_list = list(emails)
