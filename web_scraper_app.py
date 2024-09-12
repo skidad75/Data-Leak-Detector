@@ -8,6 +8,7 @@ import re
 from urllib.parse import urljoin, urlparse
 import subprocess
 import time
+import socket
 
 def is_valid(url):
     parsed = urlparse(url)
@@ -22,9 +23,16 @@ def extract_emails(text):
     email_pattern = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
     return re.findall(email_pattern, text)
 
+def perform_dns_lookup(domain):
+    try:
+        ip_address = socket.gethostbyname(domain)
+        return ip_address
+    except socket.gaierror:
+        return "DNS lookup failed"
+
 def perform_traceroute(domain):
     try:
-        result = subprocess.run(['traceroute', '-m', '30', domain], capture_output=True, text=True, timeout=30)
+        result = subprocess.run(['traceroute', '-m', '30', domain], capture_output=True, text=True, timeout=10)
         lines = result.stdout.split('\n')[1:-1]  # Skip the first line (header) and last line (empty)
         route_data = []
         for line in lines:
@@ -36,7 +44,8 @@ def perform_traceroute(domain):
                 route_data.append({"Hop": hop, "IP": ip, "Hostname": hostname})
         return pd.DataFrame(route_data)
     except subprocess.TimeoutExpired:
-        st.error("Traceroute timed out")
+        st.warning("Traceroute timed out, partial results may be available")
+        return pd.DataFrame(route_data) if route_data else None
     except Exception as e:
         st.error(f"Traceroute error: {str(e)}")
     return None
