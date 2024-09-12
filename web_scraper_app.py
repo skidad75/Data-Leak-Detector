@@ -9,6 +9,9 @@ from urllib.parse import urljoin, urlparse
 import subprocess
 import time
 import socket
+import whois
+import requests
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 def is_valid(url):
     parsed = urlparse(url)
@@ -16,7 +19,7 @@ def is_valid(url):
 
 def get_all_links(url, driver):
     driver.get(url)
-    soup = BeautifulSoup(driver.page_source, "html.parser")
+    soup = BeautifulSoup(driver.page_source, 'html.parser')
     return [urljoin(url, link.get('href')) for link in soup.find_all('a') if link.get('href')]
 
 def extract_emails(text):
@@ -30,11 +33,34 @@ def perform_dns_lookup(domain):
     except socket.gaierror:
         return "DNS lookup failed"
 
+def perform_whois_lookup(domain):
+    try:
+        w = whois.whois(domain)
+        return {
+            "Registrar": w.registrar,
+            "Creation Date": w.creation_date,
+            "Expiration Date": w.expiration_date,
+            "Name Servers": w.name_servers
+        }
+    except Exception as e:
+        return f"WHOIS lookup failed: {str(e)}"
+
+def perform_port_scan(ip, ports):
+    open_ports = []
+    for port in ports:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(1)
+        result = sock.connect_ex((ip, port))
+        if result == 0:
+            open_ports.append(port)
+        sock.close()
+    return open_ports
+
 def perform_traceroute(domain):
-    route_data = []
     try:
         result = subprocess.run(['traceroute', '-m', '30', domain], capture_output=True, text=True, timeout=10)
         lines = result.stdout.split('\n')[1:-1]  # Skip the first line (header) and last line (empty)
+        route_data = []
         for line in lines:
             parts = line.split()
             if len(parts) >= 3:
@@ -42,13 +68,15 @@ def perform_traceroute(domain):
                 ip = parts[2] if parts[2] != '*' else 'N/A'
                 hostname = parts[1] if parts[1] != '*' else 'N/A'
                 route_data.append({"Hop": hop, "IP": ip, "Hostname": hostname})
+        return pd.DataFrame(route_data)
     except subprocess.TimeoutExpired:
         st.warning("Traceroute timed out, partial results may be available")
+        return pd.DataFrame(route_data) if route_data else None
     except Exception as e:
         st.error(f"Traceroute error: {str(e)}")
-    
-    return pd.DataFrame(route_data) if route_data else None
+    return None
 
+@st.cache_data
 def scrape_website(url, max_pages):
     service = Service(ChromeDriverManager().install())
     options = webdriver.ChromeOptions()
@@ -65,12 +93,10 @@ def scrape_website(url, max_pages):
         status_text = st.empty()
         
         start_time = time.time()
-        max_duration_per_page = 59  # Maximum duration per page in seconds
+        max_duration = 59  # Maximum total duration in seconds
 
         for i in range(max_pages):
-            page_start_time = time.time()
-            
-            if not to_visit:
+            if not to_visit or (time.time() - start_time) > max_duration:
                 break
             
             current_url = to_visit.pop(0)
@@ -87,15 +113,16 @@ def scrape_website(url, max_pages):
                 links = get_all_links(current_url, driver)
                 to_visit.extend(link for link in links if is_valid(link) and link not in visited)
 
-            elapsed_time = time.time() - page_start_time
             progress = min((i + 1) / max_pages, 1.0)
+            elapsed_time = time.time() - start_time
+            time_progress = min(elapsed_time / max_duration, 1.0)
+            overall_progress = max(progress, time_progress)
             
-            progress_bar.progress(progress)
-            status_text.text(f"Scraped {i + 1} pages out of {max_pages} | {progress:.1%} complete | Time: {elapsed_time:.1f}s")
+            progress_bar.progress(overall_progress)
+            status_text.text(f"Scraped {i + 1} pages out of {max_pages} | {overall_progress:.1%} complete | Time: {elapsed_time:.1f}s")
 
-            # Wait until 59 seconds have passed for this page
-            if elapsed_time < max_duration_per_page:
-                time.sleep(max_duration_per_page - elapsed_time)
+            if elapsed_time > max_duration:
+                st
 
         email_list = list(emails)
         df_emails = pd.DataFrame({'Email': email_list})

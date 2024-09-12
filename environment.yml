@@ -13,7 +13,8 @@ dependencies:
   - html5lib
   - selenium
   - urllib3
+  - whois
   - pip:
     - streamlit_extras
     - webdriver_manager
-    - scapy
+    - python-whois
