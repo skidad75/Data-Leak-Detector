@@ -349,28 +349,19 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
             self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
         def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
-            # Calculate the maximum width available
             max_width = self.w - self.r_margin - self.l_margin
-            
-            # Split the text into words
             words = txt.split()
-            
-            # Initialize variables
             line = ''
             for word in words:
-                # Test adding the word to the current line
-                test_line = f"{line} {word}".strip()
-                test_width = self.get_string_width(test_line)
-                
-                if test_width <= max_width:
-                    # If it fits, add it to the line
-                    line = test_line
+                if self.get_string_width(line + ' ' + word) <= max_width:
+                    line += ' ' + word if line else word
                 else:
-                    # If it doesn't fit, print the current line and start a new one
-                    self.multi_cell(w, h, line, border, align, fill)
+                    if line:
+                        self.multi_cell(w, h, line, border, align, fill)
                     line = word
-            
-            # Print any remaining text
+                    while self.get_string_width(line) > max_width:
+                        self.multi_cell(w, h, line[:int(max_width/self.get_string_width('a'))], border, align, fill)
+                        line = line[int(max_width/self.get_string_width('a')):]
             if line:
                 self.multi_cell(w, h, line, border, align, fill)
 
@@ -423,7 +414,7 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.cell(0, 10, "Security Information", 0, 1)
     pdf.set_font('Arial', '', 12)
     for key, value in security_info.items():
-        pdf.multi_cell_with_wrap(0, 10, f"{key}: {value}")
+        pdf.multi_cell_with_wrap(0, 10, f"{key}: {str(value)[:200]}")  # Limit to 200 characters
     pdf.ln(5)
 
     # Data Leaks
@@ -431,7 +422,7 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.cell(0, 10, "Potential Data Leaks", 0, 1)
     pdf.set_font('Arial', '', 12)
     for leak_type, leaks in data_leaks.items():
-        pdf.multi_cell_with_wrap(0, 10, f"{leak_type}: {', '.join(list(leaks)[:10])}")
+        pdf.multi_cell_with_wrap(0, 10, f"{leak_type}: {', '.join(list(leaks)[:5])}")  # Limit to 5 items
     pdf.ln(5)
 
     # Network Information
@@ -445,9 +436,9 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
             pdf.cell(0, 10, "Traceroute", 0, 1)
             pdf.set_font('Arial', '', 12)
             for _, row in value.iterrows():
-                pdf.multi_cell_with_wrap(0, 10, f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname']}")
+                pdf.multi_cell_with_wrap(0, 10, f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname'][:50]}")  # Limit hostname to 50 characters
         else:
-            pdf.multi_cell_with_wrap(0, 10, f"{key}: {value}")
+            pdf.multi_cell_with_wrap(0, 10, f"{key}: {str(value)[:200]}")  # Limit to 200 characters
     pdf.ln(5)
 
     return pdf.output(dest='S').encode('latin-1')
