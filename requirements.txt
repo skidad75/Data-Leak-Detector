@@ -1,4 +1,7 @@
-streamlit
-pandas
-requests
-beautifulsoup4
+streamlit==1.33.0
+pandas==2.2.1
+requests==2.31.0
+beautifulsoup4==4.12.3
+numpy==1.26.4
+matplotlib==3.8.3
+st-theme==1.2.3
