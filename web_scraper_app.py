@@ -606,7 +606,15 @@ if st.button("Scrape and Analyze", key="scrape_button"):
         st.write(f"Total time: {elapsed_time:.1f} seconds")
 
         # Generate and offer PDF download
-        pdf_output = generate_security_summary_pdf(input_url, df_emails['Email'].tolist(), df_login_pages['URL'].tolist(), df_console_pages['URL'].tolist(), security_info, data_leaks, network_info)
+        pdf_output = generate_security_summary_pdf(
+            input_url, 
+            df_emails['Email'].tolist() if not df_emails.empty else [], 
+            df_login_pages['URL'].tolist() if 'URL' in df_login_pages.columns and not df_login_pages.empty else [],
+            df_console_pages['URL'].tolist() if 'URL' in df_console_pages.columns and not df_console_pages.empty else [],
+            security_info, 
+            data_leaks, 
+            network_info
+        )
         
         st.download_button(
             label="Download Security Summary PDF",
