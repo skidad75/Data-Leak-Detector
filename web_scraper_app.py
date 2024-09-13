@@ -683,6 +683,19 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
             super().__init__(orientation='L', unit='mm', format='A4')
             self.set_margins(10, 10, 10)
 
+        def header(self):
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 10, 'Security Summary Report', 0, 1, 'C')
+            self.ln(10)
+
+        def footer(self):
+            self.set_y(-15)
+            self.set_font('Arial', 'I', 8)
+            self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+        def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
+            # ... (keep the existing implementation)
+
     pdf = PDF()
     pdf.add_page()
 
@@ -866,8 +879,8 @@ class PDF(FPDF):
         pdf.cell(0, 10, "Traceroute", 0, 1)
         pdf.set_font('Arial', '', 12)
         pdf.multi_cell_with_wrap(0, 10, "Traceroute data not available.")
-
-    return pdf.output(dest='S').encode('latin-1')
+  return pdf.output(dest='S').encode('latin-1')
+  
 
 # Main Streamlit app
 st.title("Data Leak Detector")
