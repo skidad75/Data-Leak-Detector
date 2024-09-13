@@ -72,15 +72,50 @@ def perform_traceroute(domain):
     
     return pd.DataFrame(route_data) if route_data else None
 
-def is_potential_login_page(soup):
-    login_keywords = ['login', 'sign in', 'signin', 'log in', 'username', 'password']
+def is_potential_login_page(soup, url):
+    login_keywords = ['login', 'sign in', 'signin', 'log in', 'username', 'password', 'portal', 'webportal', 'web portal', 'account']
     page_text = soup.get_text().lower()
     
+    # Check for login keywords in the page text
     if any(keyword in page_text for keyword in login_keywords):
         return True
     
+    # Check for password input fields
     if soup.find('input', {'type': 'password'}):
         return True
+    
+    # Check for forms with login-related actions
+    forms = soup.find_all('form')
+    for form in forms:
+        action = form.get('action', '').lower()
+        if any(keyword in action for keyword in login_keywords):
+            return True
+    
+    # Check for links with login-related text or URLs
+    links = soup.find_all('a')
+    for link in links:
+        href = link.get('href', '').lower()
+        text = link.text.lower()
+        if any(keyword in href or keyword in text for keyword in login_keywords):
+            return True
+    
+    return False
+
+def is_potential_console_login(soup, url):
+    console_keywords = ['console', 'admin', 'dashboard', 'management', 'control panel']
+    page_text = soup.get_text().lower()
+    
+    # Check for console keywords in the page text
+    if any(keyword in page_text for keyword in console_keywords):
+        return True
+    
+    # Check for links with console-related text or URLs
+    links = soup.find_all('a')
+    for link in links:
+        href = link.get('href', '').lower()
+        text = link.text.lower()
+        if any(keyword in href or keyword in text for keyword in console_keywords):
+            return True
     
     return False
 
@@ -183,11 +218,12 @@ def detect_data_leaks(text):
     
     return leaks
 
-def load_data(url, max_pages):
+def load_data(url, max_depth):
     emails = set()
     login_pages = []
+    console_pages = []
     visited = set()
-    to_visit = [url]
+    to_visit = [(url, 0)]  # (url, depth)
     base_domain = urlparse(url).netloc
     security_info = {}
     data_leaks = {}
@@ -196,6 +232,7 @@ def load_data(url, max_pages):
     status_text = st.empty()
     email_placeholder = st.empty()
     login_placeholder = st.empty()
+    console_placeholder = st.empty()
     security_placeholder = st.empty()
     leak_placeholder = st.empty()
 
@@ -205,63 +242,78 @@ def load_data(url, max_pages):
         security_info['SSL Certificate'] = check_ssl_cert(url)
         security_info['Robots.txt'] = check_robots_txt(url)
 
-        for i in range(min(max_pages, 5)):  # Limit to 5 pages
-            if not to_visit:
-                break
-            
-            current_url = to_visit.pop(0)
-            if current_url not in visited and urlparse(current_url).netloc == base_domain:
+        total_urls = 1
+        processed_urls = 0
+
+        while to_visit:
+            current_url, depth = to_visit.pop(0)
+            if current_url not in visited and urlparse(current_url).netloc == base_domain and depth <= max_depth:
                 visited.add(current_url)
-                response = requests.get(current_url, timeout=10)
-                soup = BeautifulSoup(response.text, 'html.parser')
+                processed_urls += 1
                 
-                # Extract emails from the current page
-                page_emails = extract_emails(soup.get_text())
-                emails.update(page_emails)
+                try:
+                    response = requests.get(current_url, timeout=10)
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    
+                    # Extract emails from the current page
+                    page_emails = extract_emails(soup.get_text())
+                    emails.update(page_emails)
+                    
+                    # Check if the page might be a login page
+                    if is_potential_login_page(soup, current_url):
+                        login_pages.append(current_url)
+                    
+                    # Check if the page might be a console login
+                    if is_potential_console_login(soup, current_url):
+                        console_pages.append(current_url)
+                    
+                    # Detect data leaks
+                    page_leaks = detect_data_leaks(soup.get_text())
+                    for leak_type, leaks in page_leaks.items():
+                        if leak_type not in data_leaks:
+                            data_leaks[leak_type] = set()
+                        data_leaks[leak_type].update(leaks)
+                    
+                    # Get new links to visit
+                    if depth < max_depth:
+                        links = get_all_links(current_url, soup)
+                        new_links = [(link, depth + 1) for link in links if is_valid(link) and link not in visited]
+                        to_visit.extend(new_links)
+                        total_urls += len(new_links)
                 
-                # Check if the page might be a login page
-                if is_potential_login_page(soup):
-                    login_pages.append(current_url)
-                
-                # Detect data leaks
-                page_leaks = detect_data_leaks(soup.get_text())
-                for leak_type, leaks in page_leaks.items():
-                    if leak_type not in data_leaks:
-                        data_leaks[leak_type] = set()
-                    data_leaks[leak_type].update(leaks)
-                
-                # Get new links to visit
-                links = get_all_links(current_url, soup)
-                to_visit.extend(link for link in links if is_valid(link) and link not in visited)
+                except Exception as e:
+                    st.error(f"Error processing {current_url}: {str(e)}")
 
-            progress = (i + 1) / min(max_pages, 5)
-            progress_bar.progress(progress)
-            status_text.text(f"Scraped {i + 1} pages out of {min(max_pages, 5)} | {progress:.1%} complete")
+                progress = processed_urls / total_urls
+                progress_bar.progress(progress)
+                status_text.text(f"Processed {processed_urls} pages out of {total_urls} | Depth: {depth}/{max_depth} | {progress:.1%} complete")
 
-            # Update email display
-            df_emails = pd.DataFrame({'Email': list(emails)})
-            email_placeholder.subheader("Emails Found (First 10)")
-            email_placeholder.dataframe(df_emails.head(10))
+                # Update displays
+                df_emails = pd.DataFrame({'Email': list(emails)})
+                email_placeholder.subheader("Emails Found (First 10)")
+                email_placeholder.dataframe(df_emails.head(10))
 
-            # Update login pages display
-            if login_pages:
-                df_login_pages = pd.DataFrame([get_page_info(page) for page in login_pages])
-                login_placeholder.subheader("Potential Login Pages (First 10)")
-                login_placeholder.dataframe(df_login_pages.head(10))
+                if login_pages:
+                    df_login_pages = pd.DataFrame([get_page_info(page) for page in login_pages])
+                    login_placeholder.subheader("Potential Login Pages (First 10)")
+                    login_placeholder.dataframe(df_login_pages.head(10))
 
-            # Update security info display
-            security_placeholder.subheader("Security Information")
-            security_placeholder.json(security_info)
+                if console_pages:
+                    df_console_pages = pd.DataFrame([get_page_info(page) for page in console_pages])
+                    console_placeholder.subheader("Potential Console Login Pages (First 10)")
+                    console_placeholder.dataframe(df_console_pages.head(10))
 
-            # Update data leak display
-            leak_placeholder.subheader("Potential Data Leaks (First 10 per type)")
-            for leak_type, leaks in data_leaks.items():
-                leak_placeholder.write(f"{leak_type}: {', '.join(list(leaks)[:10])}")
+                security_placeholder.subheader("Security Information")
+                security_placeholder.json(security_info)
+
+                leak_placeholder.subheader("Potential Data Leaks (First 10 per type)")
+                for leak_type, leaks in data_leaks.items():
+                    leak_placeholder.write(f"{leak_type}: {', '.join(list(leaks)[:10])}")
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
-    return df_emails, df_login_pages if 'df_login_pages' in locals() else None, security_info, data_leaks
+    return df_emails, df_login_pages if 'df_login_pages' in locals() else None, df_console_pages if 'df_console_pages' in locals() else None, security_info, data_leaks
 
 @st.cache_data(show_spinner=False)
 def get_user_ip():
@@ -271,8 +323,9 @@ def get_user_ip():
     except:
         return "Unable to retrieve IP"
 
-st.set_page_config(layout="wide")
-st.title("Web Scraper, Email Harvester, and Network Analyzer")
+st.set_page_config(layout="wide", page_title="Data Leak Detector")
+
+st.title("Data Leak Detector")
 
 # User IP and Warning Section
 user_ip = get_user_ip()
@@ -283,7 +336,7 @@ col1, col2 = st.columns(2)
 
 with col1:
     input_url = st.text_input("Enter the URL to scrape:")
-    max_pages = st.number_input("Number of pages to scrape:", min_value=1, max_value=5, value=1)
+    max_depth = st.number_input("Maximum depth to scan:", min_value=1, max_value=7, value=3)
 
 with col2:
     st.subheader("CSV Export Settings")
@@ -303,7 +356,7 @@ if st.button("Scrape and Analyze"):
             network_future = executor.submit(perform_network_analysis, urlparse(input_url).netloc)
         
         # Perform web scraping and security checks
-        df_emails, df_login_pages, security_info, data_leaks = load_data(input_url, max_pages)
+        df_emails, df_login_pages, df_console_pages, security_info, data_leaks = load_data(input_url, max_depth)
         
         # Display results
         col1, col2 = st.columns(2)
@@ -337,6 +390,20 @@ if st.button("Scrape and Analyze"):
             else:
                 st.warning("No potential login pages found.")
             
+            if df_console_pages is not None and not df_console_pages.empty:
+                st.subheader("Potential Console Login Pages (First 10)")
+                st.dataframe(df_console_pages.head(10))
+                
+                csv_console_pages = df_console_pages.to_csv(index=include_index, sep=csv_separator)
+                st.download_button(
+                    label="Download Console Login Pages CSV",
+                    data=csv_console_pages,
+                    file_name="console_login_pages.csv",
+                    mime="text/csv",
+                )
+            else:
+                st.warning("No potential console login pages found.")
+            
             st.subheader("Security Information")
             st.json(security_info)
 
@@ -346,8 +413,7 @@ if st.button("Scrape and Analyze"):
         
         with col2:
             st.subheader("Network Analysis")
-            network_info = network_future.result()  # Get the result of network analysis
-            
+            network_info = network_future.result()
             st.write(f"IP Address: {network_info['IP Address']}")
             st.write("WHOIS Information:")
             st.json(network_info['WHOIS Info'])
@@ -364,6 +430,7 @@ if st.button("Scrape and Analyze"):
         all_data = {
             "Emails": df_emails.to_dict(orient='records') if not df_emails.empty else [],
             "Login Pages": df_login_pages.to_dict(orient='records') if df_login_pages is not None and not df_login_pages.empty else [],
+            "Console Pages": df_console_pages.to_dict(orient='records') if df_console_pages is not None and not df_console_pages.empty else [],
             "Security Info": security_info,
             "Network Info": network_info,
             "Data Leaks": {k: list(v) for k, v in data_leaks.items()}
@@ -381,5 +448,3 @@ if st.button("Scrape and Analyze"):
         st.write(f"Total time: {elapsed_time:.1f} seconds")
     else:
         st.warning("Please enter a URL.")
-
-st.button("Rerun")
