@@ -1,20 +1,27 @@
-# Web Scraper, Email Harvester, and Network Analyzer
+# Data Leak Detector
 
 ## Description
 
-This Streamlit-based application provides a comprehensive tool for web scraping, email harvesting, and network analysis. It's designed for educational and research purposes, offering insights into website structure, security configurations, and network details.
+Data Leak Detector is a Streamlit-based application designed to identify potential data leaks and security vulnerabilities in websites. It combines web scraping, email harvesting, and network analysis to provide insights into website structure, security configurations, and potential exposure of sensitive information.
 
 ## Features
 
-- Web scraping with depth control (up to 5 pages)
+- Web scraping with depth control (up to 7 pages)
 - Email harvesting from scraped pages
-- Detection of potential login pages
+- Detection of potential login pages and forms
+- Identification of input fields that may handle sensitive data
 - Network analysis including DNS lookup, WHOIS information, and port scanning
 - Security header checking
 - SSL/TLS certificate information
 - Robots.txt file analysis
+- Sitemap.xml analysis
 - User IP address display
 - Export functionality for collected data (CSV format)
+- Visual representation of scraped website structure
+- Customizable risk scoring based on detected vulnerabilities
+- Cookie analysis and detection of third-party cookies
+- JavaScript file analysis for potential security risks
+- Detection of external links and resources
 
 ## Installation
 
@@ -41,11 +48,23 @@ This Streamlit-based application provides a comprehensive tool for web scraping,
 
 3. Enter the URL you want to analyze in the input field.
 
-4. Adjust the number of pages to scrape (1-5) and CSV export settings if needed.
+4. Adjust the number of pages to scrape (1-7) and customize analysis settings if needed.
 
-5. Click "Scrape and Analyze" to start the process.
+5. Click "Analyze Website" to start the process.
 
-6. View the results in the app interface and use the download buttons to export data as needed.
+6. View the results in the app interface, including:
+   - Website structure visualization
+   - Detected emails and their sources
+   - Identified login pages and forms
+   - Security headers analysis
+   - SSL/TLS certificate details
+   - Cookie analysis
+   - JavaScript file analysis
+   - External links and resources
+   - Sitemap and robots.txt information
+   - Overall risk score and breakdown
+
+7. Use the download buttons to export data as needed.
 
 ## Ethical Considerations
 
@@ -78,4 +97,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## Disclaimer
 
-This tool is for educational purposes only. The authors are not responsible for any misuse or damage caused by this program. Use at your own risk.
+This tool is for educational and research purposes only. Always ensure you have permission to scan and analyze any website you don't own. The authors are not responsible for any misuse or damage caused by this program. Use responsibly and at your own risk.
