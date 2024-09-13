@@ -4,16 +4,19 @@ channels:
   - defaults
 dependencies:
   - python=3.12
-  - pip
-  - streamlit
-  - pandas
-  - requests
-  - beautifulsoup4
-  - lxml
-  - html5lib
-  - urllib3
-  - pyOpenSSL
+  - pip=24.0
+  - streamlit=1.32.0
+  - pandas=2.2.1
+  - requests=2.31.0
+  - beautifulsoup4=4.12.3
+  - lxml=5.1.0
+  - html5lib=1.1
+  - urllib3=2.2.1
+  - pyopenssl=24.0.0
+  - numpy=1.26.4
+  - matplotlib=3.8.3
   - pip:
-    - python-whois
-    - streamlit-extras
-    - fpdf2
+    - python-whois==0.8.0
+    - streamlit-extras==0.4.0
+    - fpdf2==2.7.8
+    - st-theme==1.2.3
