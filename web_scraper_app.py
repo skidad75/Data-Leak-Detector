@@ -349,22 +349,28 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
             self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
         def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
-            x = self.get_x()
-            y = self.get_y()
-            max_width = self.w - self.r_margin - x
+            # Calculate the maximum width available
+            max_width = self.w - self.r_margin - self.l_margin
+            
+            # Split the text into words
             words = txt.split()
             
+            # Initialize variables
             line = ''
             for word in words:
+                # Test adding the word to the current line
                 test_line = f"{line} {word}".strip()
                 test_width = self.get_string_width(test_line)
                 
                 if test_width <= max_width:
+                    # If it fits, add it to the line
                     line = test_line
                 else:
+                    # If it doesn't fit, print the current line and start a new one
                     self.multi_cell(w, h, line, border, align, fill)
                     line = word
-
+            
+            # Print any remaining text
             if line:
                 self.multi_cell(w, h, line, border, align, fill)
 
