@@ -502,7 +502,8 @@ with col2:
     csv_separator = st.selectbox("CSV Separator:", [",", ";", "\t"])
     include_index = st.checkbox("Include Index in CSV", value=False)
 
-if st.button("Scrape and Analyze"):
+# Remove the duplicate button and add a unique key to this one
+if st.button("Scrape and Analyze", key="scrape_button"):
     if input_url:
         # Ensure the input URL has a scheme
         if not input_url.startswith(('http://', 'https://')):
@@ -587,135 +588,14 @@ if st.button("Scrape and Analyze"):
     else:
         st.warning("Please enter a URL.")
 
-def generate_security_summary_pdf(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
-    class PDF(FPDF):
-        def header(self):
-            self.set_font('Arial', 'B', 12)
-            self.cell(0, 10, 'Security Summary Report', 0, 1, 'C')
-            self.ln(10)
-
-        def footer(self):
-            self.set_y(-15)
-            self.set_font('Arial', 'I', 8)
-            self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
-
-        def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
-            # Split the text into words
-            words = txt.split()
-            lines = []
-            current_line = words[0]
-            
-            for word in words[1:]:
-                # Check if adding the next word exceeds the cell width
-                if self.get_string_width(current_line + ' ' + word) <= w:
-                    current_line += ' ' + word
-                else:
-                    lines.append(current_line)
-                    current_line = word
-            
-            # Add the last line
-            lines.append(current_line)
-            
-            # Print each line using multi_cell
-            for line in lines:
-                self.multi_cell(w, h, line, border, align, fill)
-
-    pdf = PDF()
-    pdf.add_page()
-
-    # Title
-    pdf.set_font('Arial', 'B', 16)
-    pdf.cell(0, 10, f"Security Analysis for {url}", 0, 1)
-    pdf.ln(10)
-
-    # Emails
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Exposed Email Addresses", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    for email in emails[:10]:  # Limit to first 10 emails
-        pdf.cell(0, 10, email, 0, 1)
-    pdf.cell(0, 10, f"Total emails found: {len(emails)}", 0, 1)
-    pdf.ln(5)
-
-    # Login Pages
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Potential Login Pages", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    for page in login_pages[:5]:  # Limit to first 5 pages
-        pdf.cell(0, 10, str(page), 0, 1)  # Convert to string in case it's not
-    pdf.cell(0, 10, f"Total login pages found: {len(login_pages)}", 0, 1)
-    pdf.ln(5)
-
-    # Console Pages
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Potential Console Login Pages", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    for page in console_pages[:5]:  # Limit to first 5 pages
-        pdf.cell(0, 10, str(page), 0, 1)  # Convert to string in case it's not
-    pdf.cell(0, 10, f"Total console pages found: {len(console_pages)}", 0, 1)
-    pdf.ln(5)
-
-    # Security Headers
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Security Headers", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    for header, value in security_info['Security Headers'].items():
-        pdf.multi_cell_with_wrap(0, 10, f"{header}: {value}")
-    pdf.ln(5)
-
-    # SSL Certificate
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "SSL Certificate Information", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    for key, value in security_info['SSL Certificate'].items():
-        pdf.multi_cell_with_wrap(0, 10, f"{key}: {value}")
-    pdf.ln(5)
-
-    # Robots.txt
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Robots.txt", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell_with_wrap(0, 10, security_info['Robots.txt'])
-    pdf.ln(5)
-
-    # Data Leaks
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Potential Data Leaks", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    for leak_type, leaks in data_leaks.items():
-        pdf.cell(0, 10, f"{leak_type}:", 0, 1)
-        for leak in leaks[:10]:  # Limit to first 10 leaks per type
-            pdf.cell(0, 10, str(leak), 0, 1)
-        pdf.ln(5)
-
-    # Network Analysis
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Network Analysis", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.cell(0, 10, f"IP Address: {network_info['IP Address']}", 0, 1)
-    pdf.cell(0, 10, "WHOIS Information:", 0, 1)
-    for key, value in network_info['WHOIS Info'].items():
-        pdf.multi_cell_with_wrap(0, 10, f"{key}: {value}")
-    pdf.cell(0, 10, f"Open Ports: {', '.join(map(str, network_info['Open Ports']))}", 0, 1)
-    pdf.cell(0, 10, f"Server Information: {network_info['Server Info']}", 0, 1)
-     
-    if network_info['Traceroute'] is not None:
-        pdf.ln(5)
-        pdf.set_font('Arial', 'B', 14)
-        pdf.cell(0, 10, "Traceroute", 0, 1)
-        pdf.set_font('Arial', '', 12)
-        for _, row in network_info['Traceroute'].iterrows():
-            pdf.cell(0, 10, f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname']}", 0, 1)
-    else:
-        pdf.ln(5)
-        pdf.set_font('Arial', 'B', 14)
-        pdf.cell(0, 10, "Traceroute", 0, 1)
-        pdf.set_font('Arial', '', 12)
-        pdf.cell(0, 10, "Traceroute data not available.", 0, 1)
-
-    return pdf.output(dest='S').encode('latin-1')
-
+# Remove the second occurrence of the "Scrape and Analyze" button
+# The code block below should be deleted or commented out
+"""
 if st.button("Scrape and Analyze"):
+    # ... (remove this entire block)
+"""
+
+if st.button("Scrape and Analyze", key="scrape_button"):
     if input_url:
         # Ensure the input URL has a scheme
         if not input_url.startswith(('http://', 'https://')):
