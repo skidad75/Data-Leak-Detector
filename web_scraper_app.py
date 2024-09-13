@@ -700,6 +700,10 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
         pdf.multi_cell_with_wrap(0, 10, "No emails found")
     pdf.ln(5)
 
+    # ... (all the PDF content generation code)
+
+    return pdf.output(dest='S').encode('latin-1')
+
     # ... rest of the function ...
 class PDF(FPDF):
     def __init__(self):
