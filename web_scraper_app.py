@@ -349,31 +349,22 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
             self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
         def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
-            # Get the current position
             x = self.get_x()
             y = self.get_y()
-
-            # Calculate the maximum width
             max_width = self.w - self.r_margin - x
-
-            # Split the text into words
             words = txt.split()
             
             line = ''
             for word in words:
-                # Try adding the word to the line
                 test_line = f"{line} {word}".strip()
                 test_width = self.get_string_width(test_line)
                 
                 if test_width <= max_width:
-                    # If it fits, add it to the line
                     line = test_line
                 else:
-                    # If it doesn't fit, print the current line and start a new one
                     self.multi_cell(w, h, line, border, align, fill)
                     line = word
 
-            # Print any remaining text
             if line:
                 self.multi_cell(w, h, line, border, align, fill)
 
@@ -390,7 +381,7 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.cell(0, 10, "Exposed Email Addresses", 0, 1)
     pdf.set_font('Arial', '', 12)
     if emails:
-        for email in emails[:10]:  # Limit to first 10 emails
+        for email in emails[:10]:
             pdf.multi_cell_with_wrap(0, 10, str(email))
         pdf.multi_cell_with_wrap(0, 10, f"Total emails found: {len(emails)}")
     else:
@@ -402,7 +393,7 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.cell(0, 10, "Potential Login Pages", 0, 1)
     pdf.set_font('Arial', '', 12)
     if login_pages:
-        for page in login_pages[:10]:  # Limit to first 10 login pages
+        for page in login_pages[:10]:
             pdf.multi_cell_with_wrap(0, 10, str(page))
         pdf.multi_cell_with_wrap(0, 10, f"Total login pages found: {len(login_pages)}")
     else:
@@ -414,7 +405,7 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.cell(0, 10, "Potential Console Login Pages", 0, 1)
     pdf.set_font('Arial', '', 12)
     if console_pages:
-        for page in console_pages[:10]:  # Limit to first 10 console pages
+        for page in console_pages[:10]:
             pdf.multi_cell_with_wrap(0, 10, str(page))
         pdf.multi_cell_with_wrap(0, 10, f"Total console pages found: {len(console_pages)}")
     else:
