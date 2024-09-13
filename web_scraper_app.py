@@ -485,22 +485,22 @@ def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
     words = txt.split()
         
     line = ''
-        for word in words:
+    for word in words:
             # Try adding the word to the line
-            test_line = f"{line} {word}".strip()
-            test_width = self.get_string_width(test_line)
+        test_line = f"{line} {word}".strip()
+        test_width = self.get_string_width(test_line)
             
-        if test_width <= max_width:
+    if test_width <= max_width:
                 # If it fits, add it to the line
-            line = test_line
-        else:
+        line = test_line
+    else:
                 # If it doesn't fit, print the current line and start a new one
-            self.multi_cell(w, h, line, border, align, fill)
-            line = word
+        self.multi_cell(w, h, line, border, align, fill)
+        line = word
 
         # Print any remaining text
-        if line:
-            self.multi_cell(w, h, line, border, align, fill)
+    if line:
+        self.multi_cell(w, h, line, border, align, fill)
 
     pdf = PDF()
     pdf.add_page()
