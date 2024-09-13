@@ -342,25 +342,34 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
             self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
         def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
+            # Get the current position
+            x = self.get_x()
+            y = self.get_y()
+
+            # Calculate the maximum width
+            max_width = self.w - self.r_margin - x
+
             # Split the text into words
             words = txt.split()
-            lines = []
-            current_line = words[0] if words else ''
+            line = ''
+            for word in words:
+                # Try adding the word to the line
+                test_line = f"{line} {word}".strip()
+                test_width = self.get_string_width(test_line)
 
-            for word in words[1:]:
-                # Check if adding the next word exceeds the cell width
-                if self.get_string_width(current_line + ' ' + word) <= w:
-                    current_line += ' ' + word
+                if test_width <= max_width:
+                    # If it fits, add it to the line
+                    line = test_line
                 else:
-                    lines.append(current_line)
-                    current_line = word
+                    # If it doesn't fit, print the current line and start a new one
+                    self.set_xy(x, y)
+                    self.multi_cell(w, h, line, border, align, fill)
+                    y = self.get_y()
+                    line = word
 
-            # Add the last line
-            if current_line:
-                lines.append(current_line)
-
-            # Print each line using multi_cell
-            for line in lines:
+            # Print the last line
+            if line:
+                self.set_xy(x, y)
                 self.multi_cell(w, h, line, border, align, fill)
 
     pdf = PDF()
@@ -377,10 +386,10 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.set_font('Arial', '', 12)
     if emails:
         for email in emails[:10]:  # Limit to first 10 emails
-            pdf.cell(0, 10, str(email), 0, 1)
-        pdf.cell(0, 10, f"Total emails found: {len(emails)}", 0, 1)
+            pdf.multi_cell_with_wrap(0, 10, str(email))
+        pdf.multi_cell_with_wrap(0, 10, f"Total emails found: {len(emails)}")
     else:
-        pdf.cell(0, 10, "No emails found", 0, 1)
+        pdf.multi_cell_with_wrap(0, 10, "No emails found")
     pdf.ln(5)
 
     # Login Pages
@@ -389,10 +398,10 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.set_font('Arial', '', 12)
     if login_pages:
         for page in login_pages[:5]:  # Limit to first 5 pages
-            pdf.cell(0, 10, str(page), 0, 1)
-        pdf.cell(0, 10, f"Total login pages found: {len(login_pages)}", 0, 1)
+            pdf.multi_cell_with_wrap(0, 10, str(page))
+        pdf.multi_cell_with_wrap(0, 10, f"Total login pages found: {len(login_pages)}")
     else:
-        pdf.cell(0, 10, "No potential login pages found", 0, 1)
+        pdf.multi_cell_with_wrap(0, 10, "No potential login pages found")
     pdf.ln(5)
 
     # Console Pages
@@ -401,10 +410,10 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.set_font('Arial', '', 12)
     if console_pages:
         for page in console_pages[:5]:  # Limit to first 5 pages
-            pdf.cell(0, 10, str(page), 0, 1)
-        pdf.cell(0, 10, f"Total console pages found: {len(console_pages)}", 0, 1)
+            pdf.multi_cell_with_wrap(0, 10, str(page))
+        pdf.multi_cell_with_wrap(0, 10, f"Total console pages found: {len(console_pages)}")
     else:
-        pdf.cell(0, 10, "No potential console login pages found", 0, 1)
+        pdf.multi_cell_with_wrap(0, 10, "No potential console login pages found")
     pdf.ln(5)
 
     # Security Headers
@@ -415,7 +424,7 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
         for header, value in security_info['Security Headers'].items():
             pdf.multi_cell_with_wrap(0, 10, f"{header}: {value}")
     else:
-        pdf.cell(0, 10, "Security headers information not available", 0, 1)
+        pdf.multi_cell_with_wrap(0, 10, "Security headers information not available")
     pdf.ln(5)
 
     # SSL Certificate
@@ -426,7 +435,7 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
         for key, value in security_info['SSL Certificate'].items():
             pdf.multi_cell_with_wrap(0, 10, f"{key}: {value}")
     else:
-        pdf.cell(0, 10, "SSL certificate information not available", 0, 1)
+        pdf.multi_cell_with_wrap(0, 10, "SSL certificate information not available")
     pdf.ln(5)
 
     # Robots.txt
@@ -436,7 +445,7 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     if security_info.get('Robots.txt'):
         pdf.multi_cell_with_wrap(0, 10, security_info['Robots.txt'])
     else:
-        pdf.cell(0, 10, "Robots.txt information not available", 0, 1)
+        pdf.multi_cell_with_wrap(0, 10, "Robots.txt information not available")
     pdf.ln(5)
 
     # Data Leaks
@@ -445,27 +454,27 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.set_font('Arial', '', 12)
     if data_leaks:
         for leak_type, leaks in data_leaks.items():
-            pdf.cell(0, 10, f"{leak_type}:", 0, 1)
+            pdf.multi_cell_with_wrap(0, 10, f"{leak_type}:")
             for leak in list(leaks)[:10]:  # Limit to first 10 leaks per type
-                pdf.cell(0, 10, str(leak), 0, 1)
+                pdf.multi_cell_with_wrap(0, 10, str(leak))
             pdf.ln(5)
     else:
-        pdf.cell(0, 10, "No potential data leaks found", 0, 1)
+        pdf.multi_cell_with_wrap(0, 10, "No potential data leaks found")
     pdf.ln(5)
 
     # Network Analysis
     pdf.set_font('Arial', 'B', 14)
     pdf.cell(0, 10, "Network Analysis", 0, 1)
     pdf.set_font('Arial', '', 12)
-    pdf.cell(0, 10, f"IP Address: {network_info.get('IP Address', 'N/A')}", 0, 1)
-    pdf.cell(0, 10, "WHOIS Information:", 0, 1)
+    pdf.multi_cell_with_wrap(0, 10, f"IP Address: {network_info.get('IP Address', 'N/A')}")
+    pdf.multi_cell_with_wrap(0, 10, "WHOIS Information:")
     if isinstance(network_info.get('WHOIS Info'), dict):
         for key, value in network_info['WHOIS Info'].items():
             pdf.multi_cell_with_wrap(0, 10, f"{key}: {value}")
     else:
-        pdf.cell(0, 10, "WHOIS information not available", 0, 1)
-    pdf.cell(0, 10, f"Open Ports: {', '.join(map(str, network_info.get('Open Ports', [])))}", 0, 1)
-    pdf.cell(0, 10, f"Server Information: {network_info.get('Server Info', 'N/A')}", 0, 1)
+        pdf.multi_cell_with_wrap(0, 10, "WHOIS information not available")
+    pdf.multi_cell_with_wrap(0, 10, f"Open Ports: {', '.join(map(str, network_info.get('Open Ports', [])))}")
+    pdf.multi_cell_with_wrap(0, 10, f"Server Information: {network_info.get('Server Info', 'N/A')}")
     
     if isinstance(network_info.get('Traceroute'), pd.DataFrame) and not network_info['Traceroute'].empty:
         pdf.ln(5)
@@ -473,13 +482,13 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
         pdf.cell(0, 10, "Traceroute", 0, 1)
         pdf.set_font('Arial', '', 12)
         for _, row in network_info['Traceroute'].iterrows():
-            pdf.cell(0, 10, f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname']}", 0, 1)
+            pdf.multi_cell_with_wrap(0, 10, f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname']}")
     else:
         pdf.ln(5)
         pdf.set_font('Arial', 'B', 14)
         pdf.cell(0, 10, "Traceroute", 0, 1)
         pdf.set_font('Arial', '', 12)
-        pdf.cell(0, 10, "Traceroute data not available.", 0, 1)
+        pdf.multi_cell_with_wrap(0, 10, "Traceroute data not available.")
 
     return pdf.output(dest='S').encode('latin-1')
 
