@@ -449,124 +449,59 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
 # Main Streamlit app
 st.title("Data Leak Detector")
 
-# ... (rest of the code)class PDF(FPDF):
-def __init__(self):
-    super().__init__(orientation='L', unit='mm', format='A4')  # 'L' for landscape
-    self.set_margins(10, 10, 10)  # Decrease margins (left, top, right)
+# User input
+url = st.text_input("Enter a URL to scan:")
+max_depth = st.slider("Maximum crawl depth:", 1, 5, 2)
 
-def header(self):
-    self.set_font('Arial', 'B', 12)
-    self.cell(0, 10, 'Security Summary Report', 0, 1, 'C')
-    self.ln(10)
-
-def footer(self):
-    self.set_y(-15)
-    self.set_font('Arial', 'I', 8)
-    self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
-
-def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
-        # Get the current position
-    x = self.get_x()
-    y = self.get_y()
-
-        # Calculate the maximum width
-    max_width = self.w - self.r_margin - x
-
-        # Split the text into words
-    words = txt.split()
-        
-    line = ''
-    for word in words:
-            # Try adding the word to the line
-        test_line = f"{line} {word}".strip()
-        test_width = self.get_string_width(test_line)
+# Run button
+if st.button("Run Analysis"):
+    if url:
+        with st.spinner("Analyzing... This may take a few minutes."):
+            # Perform the analysis
+            emails, login_pages, console_pages, security_info, data_leaks = load_data(url, max_depth)
             
-    if test_width <= max_width:
-                # If it fits, add it to the line
-        line = test_line
+            # Perform network analysis
+            network_info = perform_network_analysis(urlparse(url).netloc)
+
+            # Display results
+            st.subheader("Analysis Results")
+            
+            # Display emails
+            st.write("Emails Found:")
+            st.dataframe(emails)
+
+            # Display login pages
+            st.write("Potential Login Pages:")
+            st.dataframe(login_pages)
+
+            # Display console pages
+            st.write("Potential Console Login Pages:")
+            st.dataframe(console_pages)
+
+            # Display security info
+            st.write("Security Information:")
+            st.json(security_info)
+
+            # Display data leaks
+            st.write("Potential Data Leaks:")
+            for leak_type, leaks in data_leaks.items():
+                st.write(f"{leak_type}: {', '.join(list(leaks)[:10])}")
+
+            # Display network info
+            st.write("Network Information:")
+            st.json(network_info)
+
+            # Generate and offer PDF download
+            pdf_bytes = generate_security_summary_pdf(url, emails, login_pages, console_pages, security_info, data_leaks, network_info)
+            st.download_button(
+                label="Download Security Summary PDF",
+                data=pdf_bytes,
+                file_name="security_summary.pdf",
+                mime="application/pdf"
+            )
     else:
-                # If it doesn't fit, print the current line and start a new one
-        self.multi_cell(w, h, line, border, align, fill)
-        line = word
+        st.error("Please enter a URL to scan.")
 
-        # Print any remaining text
-    if line:
-        self.multi_cell(w, h, line, border, align, fill)
-
-    pdf = PDF()
-    pdf.add_page()
-
-    # Title
-    pdf.set_font('Arial', 'B', 16)
-    pdf.cell(0, 10, f"Security Analysis for {url}", 0, 1)
-    pdf.ln(10)
-
-    # Emails
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Exposed Email Addresses", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    if emails:
-        for email in emails[:10]:  # Limit to first 10 emails
-            pdf.multi_cell_with_wrap(0, 10, str(email))
-        pdf.multi_cell_with_wrap(0, 10, f"Total emails found: {len(emails)}")
-    else:
-        pdf.multi_cell_with_wrap(0, 10, "No emails found")
-    pdf.ln(5)
-
-    # Login Pages
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Potential Login Pages", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    if login_pages:
-        for page in login_pages[:10]:  # Limit to first 10 login pages
-            pdf.multi_cell_with_wrap(0, 10, str(page))
-        pdf.multi_cell_with_wrap(0, 10, f"Total login pages found: {len(login_pages)}")
-    else:
-        pdf.multi_cell_with_wrap(0, 10, "No potential login pages found")
-    pdf.ln(5)
-
-    # Console Pages
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Potential Console Login Pages", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    if console_pages:
-        for page in console_pages[:10]:  # Limit to first 10 console pages
-            pdf.multi_cell_with_wrap(0, 10, str(page))
-        pdf.multi_cell_with_wrap(0, 10, f"Total console pages found: {len(console_pages)}")
-    else:
-        pdf.multi_cell_with_wrap(0, 10, "No potential console login pages found")
-    pdf.ln(5)
-
-    # Security Information
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Security Information", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    for key, value in security_info.items():
-        pdf.multi_cell_with_wrap(0, 10, f"{key}: {value}")
-    pdf.ln(5)
-
-    # Data Leaks
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Potential Data Leaks", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    for leak_type, leaks in data_leaks.items():
-        pdf.multi_cell_with_wrap(0, 10, f"{leak_type}: {', '.join(list(leaks)[:10])}")
-    pdf.ln(5)
-
-    # Network Information
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, "Network Information", 0, 1)
-    pdf.set_font('Arial', '', 12)
-    for key, value in network_info.items():
-        if key == 'Traceroute' and isinstance(value, pd.DataFrame) and not value.empty:
-            pdf.ln(5)
-            pdf.set_font('Arial', 'B', 14)
-            pdf.cell(0, 10, "Traceroute", 0, 1)
-            pdf.set_font('Arial', '', 12)
-            for _, row in value.iterrows():
-                pdf.multi_cell_with_wrap(0, 10, f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname']}")
-        else:
-            pdf.multi_cell_with_wrap(0, 10, f"{key}: {value}")
-        pdf.ln(5)
-
-        return pdf.output(dest='S').encode('latin-1')
+# Display user's IP address
+user_ip = get_user_ip()
+st.sidebar.write(f"Your IP address: {user_ip}")
