@@ -744,6 +744,20 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
 
     # ... (all the PDF content generation code)
 
+    if isinstance(network_info.get('Traceroute'), pd.DataFrame) and not network_info['Traceroute'].empty:
+        pdf.ln(5)
+        pdf.set_font('Arial', 'B', 14)
+        pdf.cell(0, 10, "Traceroute", 0, 1)
+        pdf.set_font('Arial', '', 12)
+        for _, row in network_info['Traceroute'].iterrows():
+            pdf.multi_cell_with_wrap(0, 10, f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname']}")
+    else:
+        pdf.ln(5)
+        pdf.set_font('Arial', 'B', 14)
+        pdf.cell(0, 10, "Traceroute", 0, 1)
+        pdf.set_font('Arial', '', 12)
+        pdf.multi_cell_with_wrap(0, 10, "Traceroute data not available.")
+
     return pdf.output(dest='S').encode('latin-1')
 
     # ... rest of the function ...
