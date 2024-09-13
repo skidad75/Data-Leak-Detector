@@ -1,70 +1,76 @@
-# Data Leak Detector
+# 🕵️‍♂️ Data Leak Detector
 
-## Description
+## 🚀 Uncover Hidden Vulnerabilities in Websites!
 
-Data Leak Detector is a Streamlit-based application designed to identify potential data leaks and security vulnerabilities in websites. It combines web scraping, email harvesting, and network analysis to provide insights into website structure, security configurations, and potential exposure of sensitive information.
+Ever wondered what secrets a website might be inadvertently exposing? Data Leak Detector is your go-to tool for diving deep into web security! This powerful Streamlit-based application combines web scraping, email harvesting, and network analysis to reveal potential data leaks and security vulnerabilities.
 
-## Demo
+## 🎥 See It in Action
 
-You can try out the Data Leak Detector at: https://dataleaks.streamlit.app/
+Try out the Data Leak Detector now at [https://dataleaks.streamlit.app/](https://dataleaks.streamlit.app/)
 
-## Features
+## ✨ Features That Pack a Punch
 
-- Web scraping with depth control (up to 7 pages)
-- Email harvesting from scraped pages
-- Detection of potential login pages and console login pages
-- Network analysis including DNS lookup, WHOIS information, and port scanning
-- Security header checking
-- SSL/TLS certificate information
-- Robots.txt file analysis
-- User IP address display
-- Export functionality for collected data (CSV format)
-- Potential data leak detection (credit cards, SSNs, API keys, etc.)
-- Traceroute visualization
+- 🕸️ Web crawling with adjustable depth (up to 7 pages)
+- 📧 Email harvesting from scraped pages
+- 🔐 Detection of login pages and admin consoles
+- 🌐 Comprehensive network analysis (DNS, WHOIS, port scanning)
+- 🛡️ Security header evaluation
+- 🔒 SSL/TLS certificate inspection
+- 🤖 Robots.txt file analysis
+- 🌍 User IP address revelation
+- 📊 Data export in CSV format
+- 🚨 Potential data leak detection (credit cards, SSNs, API keys, and more!)
+- 🗺️ Visual traceroute mapping
 
-## Installation
+## 🛠️ Quick Start Guide
 
-1. Clone this repository:
+1. Clone this treasure trove:
    ```
    git clone https://github.com/yourusername/data-leak-detector.git
    cd data-leak-detector
    ```
 
-2. Install the required dependencies:
+2. Equip yourself with the necessary tools:
    ```
    pip install -r requirements.txt
    ```
 
-## Usage
-
-1. Run the Streamlit app:
+3. Launch the detector:
    ```
    streamlit run web_scraper_app.py
    ```
 
-   Alternatively, you can use the online demo at https://dataleaks.streamlit.app/
+4. Navigate to the URL provided by Streamlit (usually http://localhost:8501).
 
-2. Open your web browser and navigate to the URL provided by Streamlit (usually http://localhost:8501) if running locally.
+5. Enter your target URL, adjust the scan depth, and hit "Scrape and Analyze"!
 
-3. Enter the URL you want to analyze in the input field.
-
-4. Adjust the maximum depth to scan (1-7) and customize CSV export settings if needed.
-
-5. Click "Scrape and Analyze" to start the process.
-
-6. View the results in the app interface, including:
-   - Detected emails
-   - Potential login pages and console login pages
-   - Security information (headers, SSL certificate, robots.txt)
-   - Network analysis (IP, WHOIS, open ports, traceroute)
+6. Sit back and watch as Data Leak Detector uncovers:
+   - Hidden emails
+   - Sneaky login pages
+   - Security weak points
+   - Network vulnerabilities
    - Potential data leaks
 
-7. Use the download buttons to export data as needed.
+7. Export your findings and fortify those defenses!
 
-## Disclaimer
+## ☕ Fuel the Development
 
-This tool is for educational and research purposes only. Always ensure you have permission to scan and analyze any website you don't own. The authors are not responsible for any misuse or damage caused by this program. Use responsibly and at your own risk.
+Love Data Leak Detector? Help keep the electrons flowing and the code growing! Buy me a coffee and support ongoing development:
 
-## License
+[https://buymeacoffee.com/skidad75](https://buymeacoffee.com/skidad75)
+
+Your support helps maintain and improve this tool, ensuring it stays sharp in the ever-evolving landscape of web security.
+
+## 🚨 Disclaimer
+
+This tool is for educational and research purposes only. Always obtain permission before scanning websites you don't own. Use responsibly and at your own risk. The authors are not liable for any misuse or damage caused by this program.
+
+## 📜 License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 🤝 Contribute
+
+Found a bug? Have a cool feature idea? We'd love your input! Feel free to open an issue or submit a pull request.
+
+Together, let's make the web a safer place, one scan at a time! 🌐🛡️
