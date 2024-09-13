@@ -459,44 +459,44 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
 st.title("Data Leak Detector")
 
 # ... (rest of the code)class PDF(FPDF):
-    def __init__(self):
-        super().__init__(orientation='L', unit='mm', format='A4')  # 'L' for landscape
-        self.set_margins(10, 10, 10)  # Decrease margins (left, top, right)
+def __init__(self):
+    super().__init__(orientation='L', unit='mm', format='A4')  # 'L' for landscape
+    self.set_margins(10, 10, 10)  # Decrease margins (left, top, right)
 
-    def header(self):
-        self.set_font('Arial', 'B', 12)
-        self.cell(0, 10, 'Security Summary Report', 0, 1, 'C')
-        self.ln(10)
+def header(self):
+    self.set_font('Arial', 'B', 12)
+    self.cell(0, 10, 'Security Summary Report', 0, 1, 'C')
+    self.ln(10)
 
-    def footer(self):
-        self.set_y(-15)
-        self.set_font('Arial', 'I', 8)
-        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+def footer(self):
+    self.set_y(-15)
+    self.set_font('Arial', 'I', 8)
+    self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
-    def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
+def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
         # Get the current position
-        x = self.get_x()
-        y = self.get_y()
+    x = self.get_x()
+    y = self.get_y()
 
         # Calculate the maximum width
-        max_width = self.w - self.r_margin - x
+    max_width = self.w - self.r_margin - x
 
         # Split the text into words
-        words = txt.split()
+    words = txt.split()
         
-        line = ''
+    line = ''
         for word in words:
             # Try adding the word to the line
             test_line = f"{line} {word}".strip()
             test_width = self.get_string_width(test_line)
             
-            if test_width <= max_width:
+        if test_width <= max_width:
                 # If it fits, add it to the line
-                line = test_line
-            else:
+            line = test_line
+        else:
                 # If it doesn't fit, print the current line and start a new one
-                self.multi_cell(w, h, line, border, align, fill)
-                line = word
+            self.multi_cell(w, h, line, border, align, fill)
+            line = word
 
         # Print any remaining text
         if line:
