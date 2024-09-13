@@ -17,6 +17,7 @@ import ssl
 import OpenSSL
 from fpdf import FPDF
 import io
+import textwrap
 
 def is_valid(url):
     parsed = urlparse(url)
@@ -329,6 +330,8 @@ def get_user_ip():
     except:
         return "Unable to retrieve IP"
 
+import textwrap
+
 def generate_security_summary_pdf(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
     class PDF(FPDF):
         def header(self):
@@ -342,34 +345,13 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
             self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
 
         def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
-            # Get the current position
-            x = self.get_x()
-            y = self.get_y()
-
             # Calculate the maximum width
-            max_width = self.w - self.r_margin - x
+            max_width = self.w - 2*self.l_margin
 
-            # Split the text into words
-            words = txt.split()
-            line = ''
-            for word in words:
-                # Try adding the word to the line
-                test_line = f"{line} {word}".strip()
-                test_width = self.get_string_width(test_line)
+            # Split the text into lines that fit within the maximum width
+            lines = textwrap.wrap(txt, width=int(max_width / (self.font_size / 2)))
 
-                if test_width <= max_width:
-                    # If it fits, add it to the line
-                    line = test_line
-                else:
-                    # If it doesn't fit, print the current line and start a new one
-                    self.set_xy(x, y)
-                    self.multi_cell(w, h, line, border, align, fill)
-                    y = self.get_y()
-                    line = word
-
-            # Print the last line
-            if line:
-                self.set_xy(x, y)
+            for line in lines:
                 self.multi_cell(w, h, line, border, align, fill)
 
     pdf = PDF()
