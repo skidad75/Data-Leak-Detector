@@ -678,6 +678,29 @@ def get_user_ip():
 import textwrap
 
 def generate_security_summary_pdf(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
+    class PDF(FPDF):
+        def __init__(self):
+            super().__init__(orientation='L', unit='mm', format='A4')
+            self.set_margins(10, 10, 10)
+
+    pdf = PDF()
+    pdf.add_page()
+
+    # ... existing code ...
+
+    # Use the emails parameter
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Exposed Email Addresses", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    if emails:
+        for email in emails[:10]:  # Limit to first 10 emails
+            pdf.multi_cell_with_wrap(0, 10, email)
+        pdf.multi_cell_with_wrap(0, 10, f"Total emails found: {len(emails)}")
+    else:
+        pdf.multi_cell_with_wrap(0, 10, "No emails found")
+    pdf.ln(5)
+
+    # ... rest of the function ...
 class PDF(FPDF):
     def __init__(self):
         super().__init__(orientation='L', unit='mm', format='A4')  # 'L' for landscape
