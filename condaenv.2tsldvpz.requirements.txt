@@ -1,4 +1,0 @@
-python-whois==0.8.0
-streamlit-extras==0.4.0
-fpdf2==2.7.8
-st-theme==1.2.3
