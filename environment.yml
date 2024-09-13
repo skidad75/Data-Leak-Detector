@@ -16,3 +16,4 @@ dependencies:
   - pip:
     - python-whois
     - streamlit-extras
+    - fpdf2
