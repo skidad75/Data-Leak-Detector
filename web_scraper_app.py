@@ -166,6 +166,23 @@ def check_robots_txt(url):
     except Exception as e:
         return f"Error checking robots.txt: {str(e)}"
 
+def detect_data_leaks(text):
+    patterns = {
+        'Credit Card': r'\b(?:\d{4}[-\s]?){3}\d{4}\b',
+        'Social Security Number': r'\b\d{3}-\d{2}-\d{4}\b',
+        'API Key': r'\b[A-Za-z0-9]{32,}\b',
+        'Email': r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+        'Phone Number': r'\b\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}\b'
+    }
+    
+    leaks = {}
+    for leak_type, pattern in patterns.items():
+        matches = re.findall(pattern, text)
+        if matches:
+            leaks[leak_type] = matches[:10]  # Limit to first 10 matches
+    
+    return leaks
+
 def load_data(url, max_pages):
     emails = set()
     login_pages = []
@@ -173,12 +190,14 @@ def load_data(url, max_pages):
     to_visit = [url]
     base_domain = urlparse(url).netloc
     security_info = {}
+    data_leaks = {}
 
     progress_bar = st.progress(0)
     status_text = st.empty()
     email_placeholder = st.empty()
     login_placeholder = st.empty()
     security_placeholder = st.empty()
+    leak_placeholder = st.empty()
 
     try:
         # Check security headers, SSL cert, and robots.txt
@@ -204,6 +223,13 @@ def load_data(url, max_pages):
                 if is_potential_login_page(soup):
                     login_pages.append(current_url)
                 
+                # Detect data leaks
+                page_leaks = detect_data_leaks(soup.get_text())
+                for leak_type, leaks in page_leaks.items():
+                    if leak_type not in data_leaks:
+                        data_leaks[leak_type] = set()
+                    data_leaks[leak_type].update(leaks)
+                
                 # Get new links to visit
                 links = get_all_links(current_url, soup)
                 to_visit.extend(link for link in links if is_valid(link) and link not in visited)
@@ -227,10 +253,15 @@ def load_data(url, max_pages):
             security_placeholder.subheader("Security Information")
             security_placeholder.json(security_info)
 
+            # Update data leak display
+            leak_placeholder.subheader("Potential Data Leaks (First 10 per type)")
+            for leak_type, leaks in data_leaks.items():
+                leak_placeholder.write(f"{leak_type}: {', '.join(list(leaks)[:10])}")
+
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
-    return df_emails, df_login_pages if 'df_login_pages' in locals() else None, security_info
+    return df_emails, df_login_pages if 'df_login_pages' in locals() else None, security_info, data_leaks
 
 @st.cache_data(show_spinner=False)
 def get_user_ip():
@@ -261,6 +292,10 @@ with col2:
 
 if st.button("Scrape and Analyze"):
     if input_url:
+        # Ensure the input URL has a scheme
+        if not input_url.startswith(('http://', 'https://')):
+            input_url = 'http://' + input_url
+
         start_time = time.time()
         
         # Start network analysis in a separate thread
@@ -268,7 +303,7 @@ if st.button("Scrape and Analyze"):
             network_future = executor.submit(perform_network_analysis, urlparse(input_url).netloc)
         
         # Perform web scraping and security checks
-        df_emails, df_login_pages, security_info = load_data(input_url, max_pages)
+        df_emails, df_login_pages, security_info, data_leaks = load_data(input_url, max_pages)
         
         # Display results
         col1, col2 = st.columns(2)
@@ -304,6 +339,10 @@ if st.button("Scrape and Analyze"):
             
             st.subheader("Security Information")
             st.json(security_info)
+
+            st.subheader("Potential Data Leaks")
+            for leak_type, leaks in data_leaks.items():
+                st.write(f"{leak_type}: {', '.join(list(leaks)[:10])}")
         
         with col2:
             st.subheader("Network Analysis")
@@ -326,7 +365,8 @@ if st.button("Scrape and Analyze"):
             "Emails": df_emails.to_dict(orient='records') if not df_emails.empty else [],
             "Login Pages": df_login_pages.to_dict(orient='records') if df_login_pages is not None and not df_login_pages.empty else [],
             "Security Info": security_info,
-            "Network Info": network_info
+            "Network Info": network_info,
+            "Data Leaks": {k: list(v) for k, v in data_leaks.items()}
         }
         
         csv_all_data = pd.json_normalize(all_data).to_csv(index=include_index, sep=csv_separator)
