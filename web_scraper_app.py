@@ -458,8 +458,7 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
 # Main Streamlit app
 st.title("Data Leak Detector")
 
-# ... (rest of the code)
-class PDF(FPDF):
+# ... (rest of the code)class PDF(FPDF):
     def __init__(self):
         super().__init__(orientation='L', unit='mm', format='A4')  # 'L' for landscape
         self.set_margins(10, 10, 10)  # Decrease margins (left, top, right)
