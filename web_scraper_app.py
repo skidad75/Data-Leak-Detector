@@ -181,8 +181,8 @@ def check_ssl_cert(url):
             'Issuer': dict(x509.get_issuer().get_components()),
             'Version': x509.get_version(),
             'Serial Number': x509.get_serial_number(),
-            'Not Before': x509.get_notBefore(),
-            'Not After': x509.get_notAfter(),
+            'Not Before': x509.get_notBefore().decode(),
+            'Not After': x509.get_notAfter().decode(),
             'OCSP': cert.get('OCSP', 'Not available'),
             'Subject Alt Names': cert.get('subjectAltName', 'Not available')
         }
@@ -313,7 +313,7 @@ def load_data(url, max_depth):
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
-    return df_emails, df_login_pages if 'df_login_pages' in locals() else None, df_console_pages if 'df_console_pages' in locals() else None, security_info, data_leaks
+    return df_emails, df_login_pages if 'df_login_pages' in locals() else pd.DataFrame(), df_console_pages if 'df_console_pages' in locals() else pd.DataFrame(), security_info, data_leaks
 
 @st.cache_data(show_spinner=False)
 def get_user_ip():
@@ -376,7 +376,7 @@ if st.button("Scrape and Analyze"):
             else:
                 st.warning("No emails found.")
             
-            if df_login_pages is not None and not df_login_pages.empty:
+            if not df_login_pages.empty:
                 st.subheader("Potential Login Pages (First 10)")
                 st.dataframe(df_login_pages.head(10))
                 
@@ -390,7 +390,7 @@ if st.button("Scrape and Analyze"):
             else:
                 st.warning("No potential login pages found.")
             
-            if df_console_pages is not None and not df_console_pages.empty:
+            if not df_console_pages.empty:
                 st.subheader("Potential Console Login Pages (First 10)")
                 st.dataframe(df_console_pages.head(10))
                 
@@ -429,8 +429,8 @@ if st.button("Scrape and Analyze"):
         # Prepare all data for CSV export
         all_data = {
             "Emails": df_emails.to_dict(orient='records') if not df_emails.empty else [],
-            "Login Pages": df_login_pages.to_dict(orient='records') if df_login_pages is not None and not df_login_pages.empty else [],
-            "Console Pages": df_console_pages.to_dict(orient='records') if df_console_pages is not None and not df_console_pages.empty else [],
+            "Login Pages": df_login_pages.to_dict(orient='records') if not df_login_pages.empty else [],
+            "Console Pages": df_console_pages.to_dict(orient='records') if not df_console_pages.empty else [],
             "Security Info": security_info,
             "Network Info": network_info,
             "Data Leaks": {k: list(v) for k, v in data_leaks.items()}
