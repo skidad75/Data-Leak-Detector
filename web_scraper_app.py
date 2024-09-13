@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import ssl
 import OpenSSL
+from fpdf import FPDF
+import io
 
 def is_valid(url):
     parsed = urlparse(url)
@@ -323,6 +325,103 @@ def get_user_ip():
     except:
         return "Unable to retrieve IP"
 
+def generate_security_summary_pdf(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
+    class PDF(FPDF):
+        def header(self):
+            self.set_font('Arial', 'B', 12)
+            self.cell(0, 10, 'Security Summary Report', 0, 1, 'C')
+            self.ln(10)
+
+        def footer(self):
+            self.set_y(-15)
+            self.set_font('Arial', 'I', 8)
+            self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+    pdf = PDF()
+    pdf.add_page()
+
+    # Title
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 10, f"Security Analysis for {url}", 0, 1)
+    pdf.ln(10)
+
+    # Emails
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Exposed Email Addresses", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    for email in emails[:10]:  # Limit to first 10 emails
+        pdf.cell(0, 10, email, 0, 1)
+    pdf.cell(0, 10, f"Total emails found: {len(emails)}", 0, 1)
+    pdf.ln(5)
+
+    # Login Pages
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Potential Login Pages", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    for page in login_pages[:5]:  # Limit to first 5 pages
+        pdf.cell(0, 10, page, 0, 1)
+    pdf.cell(0, 10, f"Total login pages found: {len(login_pages)}", 0, 1)
+    pdf.ln(5)
+
+    # Console Pages
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Potential Console Login Pages", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    for page in console_pages[:5]:  # Limit to first 5 pages
+        pdf.cell(0, 10, page, 0, 1)
+    pdf.cell(0, 10, f"Total console pages found: {len(console_pages)}", 0, 1)
+    pdf.ln(5)
+
+    # Security Headers
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Security Headers", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    for header, value in security_info['Security Headers'].items():
+        pdf.multi_cell(0, 10, f"{header}: {value}", 0)
+    pdf.ln(5)
+
+    # Data Leaks
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Potential Data Leaks", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    for leak_type, leaks in data_leaks.items():
+        pdf.multi_cell(0, 10, f"{leak_type}: {', '.join(list(leaks)[:5])}", 0)
+    pdf.ln(5)
+
+    # Network Information
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Network Information", 0, 1)
+    pdf.set_font('Arial', '', 12)
+    pdf.multi_cell(0, 10, f"IP Address: {network_info['IP Address']}", 0)
+    pdf.multi_cell(0, 10, f"Open Ports: {', '.join(map(str, network_info['Open Ports']))}", 0)
+    pdf.multi_cell(0, 10, f"Server Info: {network_info['Server Info']}", 0)
+    pdf.ln(5)
+
+    # Recommendations
+    pdf.add_page()
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 10, "Security Recommendations", 0, 1)
+    pdf.ln(5)
+
+    recommendations = [
+        "Implement proper email obfuscation techniques to prevent email harvesting.",
+        "Ensure all login pages use HTTPS and implement proper access controls.",
+        "Regularly audit and remove unnecessary admin console pages.",
+        "Implement all recommended security headers.",
+        "Conduct regular scans for sensitive data exposure and implement data loss prevention measures.",
+        "Keep all software and systems up-to-date and patch known vulnerabilities.",
+        "Implement a Web Application Firewall (WAF) for additional protection.",
+        "Conduct regular security assessments and penetration testing.",
+        "Implement strong password policies and multi-factor authentication.",
+        "Educate employees about security best practices and phishing awareness."
+    ]
+
+    pdf.set_font('Arial', '', 12)
+    for rec in recommendations:
+        pdf.multi_cell(0, 10, f"• {rec}", 0)
+
+    return pdf.output(dest='S').encode('latin-1')
+
 st.set_page_config(layout="wide", page_title="Data Leak Detector")
 
 st.title("Data Leak Detector")
@@ -446,5 +545,16 @@ if st.button("Scrape and Analyze"):
         
         elapsed_time = time.time() - start_time
         st.write(f"Total time: {elapsed_time:.1f} seconds")
+
+        # Generate and offer PDF download
+        pdf_output = generate_security_summary_pdf(input_url, df_emails['Email'].tolist(), df_login_pages['URL'].tolist(), df_console_pages['URL'].tolist(), security_info, data_leaks, network_info)
+        
+        st.download_button(
+            label="Download Security Summary PDF",
+            data=pdf_output,
+            file_name="security_summary.pdf",
+            mime="application/pdf",
+        )
+
     else:
         st.warning("Please enter a URL.")
