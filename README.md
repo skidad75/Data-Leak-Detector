@@ -4,6 +4,10 @@
 
 Data Leak Detector is a Streamlit-based application designed to identify potential data leaks and security vulnerabilities in websites. It combines web scraping, email harvesting, and network analysis to provide insights into website structure, security configurations, and potential exposure of sensitive information.
 
+## Demo
+
+You can try out the Data Leak Detector at: https://dataleaks.streamlit.app/
+
 ## Features
 
 - Web scraping with depth control (up to 7 pages)
@@ -44,7 +48,9 @@ Data Leak Detector is a Streamlit-based application designed to identify potenti
    streamlit run web_scraper_app.py
    ```
 
-2. Open your web browser and navigate to the URL provided by Streamlit (usually http://localhost:8501).
+   Alternatively, you can use the online demo at https://dataleaks.streamlit.app/
+
+2. Open your web browser and navigate to the URL provided by Streamlit (usually http://localhost:8501) if running locally.
 
 3. Enter the URL you want to analyze in the input field.
 
