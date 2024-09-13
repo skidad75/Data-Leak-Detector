@@ -380,9 +380,9 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.set_font('Arial', 'B', 14)
     pdf.cell(0, 10, "Exposed Email Addresses", 0, 1)
     pdf.set_font('Arial', '', 12)
-    if emails:
-        for email in emails[:10]:
-            pdf.multi_cell_with_wrap(0, 10, str(email))
+    if not emails.empty:
+        for _, row in emails.iterrows():
+            pdf.multi_cell_with_wrap(0, 10, str(row['Email']))
         pdf.multi_cell_with_wrap(0, 10, f"Total emails found: {len(emails)}")
     else:
         pdf.multi_cell_with_wrap(0, 10, "No emails found")
@@ -392,9 +392,9 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.set_font('Arial', 'B', 14)
     pdf.cell(0, 10, "Potential Login Pages", 0, 1)
     pdf.set_font('Arial', '', 12)
-    if login_pages:
-        for page in login_pages[:10]:
-            pdf.multi_cell_with_wrap(0, 10, str(page))
+    if not login_pages.empty:
+        for _, row in login_pages.iterrows():
+            pdf.multi_cell_with_wrap(0, 10, str(row['URL']))
         pdf.multi_cell_with_wrap(0, 10, f"Total login pages found: {len(login_pages)}")
     else:
         pdf.multi_cell_with_wrap(0, 10, "No potential login pages found")
@@ -404,9 +404,9 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
     pdf.set_font('Arial', 'B', 14)
     pdf.cell(0, 10, "Potential Console Login Pages", 0, 1)
     pdf.set_font('Arial', '', 12)
-    if console_pages:
-        for page in console_pages[:10]:
-            pdf.multi_cell_with_wrap(0, 10, str(page))
+    if not console_pages.empty:
+        for _, row in console_pages.iterrows():
+            pdf.multi_cell_with_wrap(0, 10, str(row['URL']))
         pdf.multi_cell_with_wrap(0, 10, f"Total console pages found: {len(console_pages)}")
     else:
         pdf.multi_cell_with_wrap(0, 10, "No potential console login pages found")
