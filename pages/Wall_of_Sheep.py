@@ -71,8 +71,8 @@ st.sidebar.title("Navigation")
 page = st.sidebar.radio("Go to", ["Recent Searches", "Map View", "Statistics"])
 
 # Main content
-st.title('Wall of Sheep 🐑')
-
+st.title("Wall of Sheep 🐑")
+st.sidebar.page_link("Data Leak Detector", label="Home 🏠")
 data = load_data()
 
 if page == "Recent Searches":
