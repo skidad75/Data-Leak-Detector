@@ -1,4 +1,7 @@
 import streamlit as st
+import requests
+from requests.exceptions import Timeout, RequestException
+import concurrent.futures
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Detector")
@@ -11,7 +14,6 @@ import subprocess
 import time
 import socket
 import whois
-import requests
 from bs4 import BeautifulSoup
 import ssl
 import OpenSSL
@@ -253,75 +255,84 @@ def load_data(url, max_depth):
         total_urls = 1
         processed_urls = 0
 
-        while to_visit:
-            current_url, depth = to_visit.pop(0)
-            if current_url not in visited and urlparse(current_url).netloc == base_domain and depth <= max_depth:
-                visited.add(current_url)
-                processed_urls += 1
-                
-                try:
-                    response = requests.get(current_url, timeout=10)
-                    soup = BeautifulSoup(response.text, 'html.parser')
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            while to_visit:
+                current_url, depth = to_visit.pop(0)
+                if current_url not in visited and urlparse(current_url).netloc == base_domain and depth <= max_depth:
+                    visited.add(current_url)
+                    processed_urls += 1
                     
-                    # Extract emails from the current page
-                    page_emails = extract_emails(soup.get_text())
-                    emails.update(page_emails)
-                    
-                    # Check if the page might be a login page
-                    if is_potential_login_page(soup, current_url):
-                        login_pages.append(current_url)
-                    
-                    # Check if the page might be a console login
-                    if is_potential_console_login(soup, current_url):
-                        console_pages.append(current_url)
-                    
-                    # Detect data leaks
-                    page_leaks = detect_data_leaks(soup.get_text())
-                    for leak_type, leaks in page_leaks.items():
-                        if leak_type not in data_leaks:
-                            data_leaks[leak_type] = set()
-                        data_leaks[leak_type].update(leaks)
-                    
-                    # Get new links to visit
-                    if depth < max_depth:
-                        links = get_all_links(current_url, soup)
-                        new_links = [(link, depth + 1) for link in links if is_valid(link) and link not in visited]
-                        to_visit.extend(new_links)
-                        total_urls += len(new_links)
-                
-                except Exception as e:
-                    st.error(f"Error processing {current_url}: {str(e)}")
+                    future = executor.submit(process_url, current_url, depth, base_domain, max_depth)
+                    try:
+                        result = future.result(timeout=30)  # 30 seconds timeout for each URL
+                        if result:
+                            emails.update(result['emails'])
+                            login_pages.extend(result['login_pages'])
+                            console_pages.extend(result['console_pages'])
+                            data_leaks.update(result['data_leaks'])
+                            to_visit.extend(result['new_links'])
+                            total_urls += len(result['new_links'])
+                    except concurrent.futures.TimeoutError:
+                        st.warning(f"Timeout while processing {current_url}")
+                    except Exception as e:
+                        st.error(f"Error processing {current_url}: {str(e)}")
 
-                progress = processed_urls / total_urls
-                progress_bar.progress(progress)
-                status_text.text(f"Processed {processed_urls} pages out of {total_urls} | Depth: {depth}/{max_depth} | {progress:.1%} complete")
+                    progress = processed_urls / total_urls
+                    progress_bar.progress(progress)
+                    status_text.text(f"Processed {processed_urls} pages out of {total_urls} | Depth: {depth}/{max_depth} | {progress:.1%} complete")
 
-                # Update displays
-                df_emails = pd.DataFrame({'Email': list(emails)})
-                email_placeholder.subheader("Emails Found (First 10)")
-                email_placeholder.dataframe(df_emails.head(10))
+                    # Update displays
+                    df_emails = pd.DataFrame({'Email': list(emails)})
+                    email_placeholder.subheader("Emails Found (First 10)")
+                    email_placeholder.dataframe(df_emails.head(10))
 
-                if login_pages:
-                    df_login_pages = pd.DataFrame([get_page_info(page) for page in login_pages])
-                    login_placeholder.subheader("Potential Login Pages (First 10)")
-                    login_placeholder.dataframe(df_login_pages.head(10))
+                    if login_pages:
+                        df_login_pages = pd.DataFrame([get_page_info(page) for page in login_pages])
+                        login_placeholder.subheader("Potential Login Pages (First 10)")
+                        login_placeholder.dataframe(df_login_pages.head(10))
 
-                if console_pages:
-                    df_console_pages = pd.DataFrame([get_page_info(page) for page in console_pages])
-                    console_placeholder.subheader("Potential Console Login Pages (First 10)")
-                    console_placeholder.dataframe(df_console_pages.head(10))
+                    if console_pages:
+                        df_console_pages = pd.DataFrame([get_page_info(page) for page in console_pages])
+                        console_placeholder.subheader("Potential Console Login Pages (First 10)")
+                        console_placeholder.dataframe(df_console_pages.head(10))
 
-                security_placeholder.subheader("Security Information")
-                security_placeholder.json(security_info)
+                    security_placeholder.subheader("Security Information")
+                    security_placeholder.json(security_info)
 
-                leak_placeholder.subheader("Potential Data Leaks (First 10 per type)")
-                for leak_type, leaks in data_leaks.items():
-                    leak_placeholder.write(f"{leak_type}: {', '.join(list(leaks)[:10])}")
+                    leak_placeholder.subheader("Potential Data Leaks (First 10 per type)")
+                    for leak_type, leaks in data_leaks.items():
+                        leak_placeholder.write(f"{leak_type}: {', '.join(list(leaks)[:10])}")
 
     except Exception as e:
         st.error(f"An error occurred: {str(e)}")
 
     return df_emails, df_login_pages if 'df_login_pages' in locals() else pd.DataFrame(), df_console_pages if 'df_console_pages' in locals() else pd.DataFrame(), security_info, data_leaks
+
+def process_url(url, depth, base_domain, max_depth):
+    try:
+        response = requests.get(url, timeout=10)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        page_emails = extract_emails(soup.get_text())
+        login_pages = [url] if is_potential_login_page(soup, url) else []
+        console_pages = [url] if is_potential_console_login(soup, url) else []
+        page_leaks = detect_data_leaks(soup.get_text())
+        
+        new_links = []
+        if depth < max_depth:
+            links = get_all_links(url, soup)
+            new_links = [(link, depth + 1) for link in links if is_valid(link) and urlparse(link).netloc == base_domain]
+        
+        return {
+            'emails': page_emails,
+            'login_pages': login_pages,
+            'console_pages': console_pages,
+            'data_leaks': page_leaks,
+            'new_links': new_links
+        }
+    except (Timeout, RequestException) as e:
+        st.warning(f"Error accessing {url}: {str(e)}")
+        return None
 
 @st.cache_data(show_spinner=False)
 def get_user_ip():
