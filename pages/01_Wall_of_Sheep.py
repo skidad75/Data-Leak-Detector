@@ -1,21 +1,39 @@
 import streamlit as st
 import sqlite3
-import geoip2.database
 import pandas as pd
 from datetime import datetime
 
 # Set page config
 st.set_page_config(page_title="Wall of Sheep", page_icon="🐑", layout="wide")
 
-# Initialize the GeoIP2 database reader
-geoip_reader = geoip2.database.Reader('path/to/GeoLite2-City.mmdb')
+# Optional GeoIP functionality
+use_geoip = st.sidebar.checkbox("Use GeoIP (requires database file)", value=False)
+
+if use_geoip:
+    import geoip2.database
+    geoip_path = st.sidebar.text_input("Path to GeoLite2-City.mmdb file")
+    if geoip_path:
+        try:
+            geoip_reader = geoip2.database.Reader(geoip_path)
+            st.sidebar.success("GeoIP database loaded successfully!")
+        except FileNotFoundError:
+            st.sidebar.error("GeoIP database file not found. Please check the path.")
+            use_geoip = False
+        except Exception as e:
+            st.sidebar.error(f"Error loading GeoIP database: {str(e)}")
+            use_geoip = False
+    else:
+        use_geoip = False
 
 def get_location(ip_address):
-    try:
-        geo_info = geoip_reader.city(ip_address)
-        return f"{geo_info.city.name}, {geo_info.country.name}"
-    except:
-        return "Unknown"
+    if use_geoip:
+        try:
+            geo_info = geoip_reader.city(ip_address)
+            return f"{geo_info.city.name}, {geo_info.country.name}"
+        except:
+            return "Unknown"
+    else:
+        return "GeoIP not enabled"
 
 def load_data():
     conn = sqlite3.connect('search_history.db')
@@ -55,10 +73,11 @@ if page == "Recent Searches":
     )
 
 elif page == "Map View":
-    st.header("User Locations")
-    locations = data[['location']].drop_duplicates()
-    locations[['lat', 'lon']] = locations['location'].apply(lambda x: pd.Series(geoip_reader.city(x.split(', ')[0]).location.latitude, geoip_reader.city(x.split(', ')[0]).location.longitude))
-    st.map(locations)
+    if use_geoip:
+        st.header("User Locations")
+        locations = data[['location']].drop_duplicates()
+        locations[['lat', 'lon']] = locations['location'].apply(lambda x: pd.Series(geoip_reader.city(x.split(', ')[0]).location.latitude, geoip_reader.city(x.split(', ')[0]).location.longitude))
+        st.map(locations)
 
 elif page == "Statistics":
     st.header("Search Statistics")
@@ -75,10 +94,11 @@ elif page == "Statistics":
     st.subheader("Searches per Hour")
     st.line_chart(hourly_searches)
     
-    # Most active locations
-    location_counts = data['location'].value_counts().head(10)
-    st.subheader("Top 10 Active Locations")
-    st.bar_chart(location_counts)
+    # Most active locations (only if GeoIP is enabled)
+    if use_geoip:
+        location_counts = data['location'].value_counts().head(10)
+        st.subheader("Top 10 Active Locations")
+        st.bar_chart(location_counts)
 
 # Footer
 st.sidebar.markdown("---")
