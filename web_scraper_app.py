@@ -333,39 +333,73 @@ def get_user_ip():
 import textwrap
 
 def generate_security_summary_pdf(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
-    # ... (existing code)
-
     def truncate(text, max_length=200):
         return (text[:max_length] + '...') if len(text) > max_length else text
 
-    # ... (existing code)
+    pdf = PDF()
+    pdf.add_page()
 
-    # Update the following sections to use truncation:
+    # Title
+    pdf.set_font('Arial', 'B', 16)
+    pdf.cell(0, 10, f"Security Analysis for {url}", 0, 1)
+    pdf.ln(10)
 
     # Emails
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Exposed Email Addresses", 0, 1)
+    pdf.set_font('Arial', '', 12)
     if not emails.empty:
         for _, row in emails.iterrows():
             pdf.multi_cell_with_wrap(0, 10, truncate(str(row['Email'])))
-    
+        pdf.multi_cell_with_wrap(0, 10, f"Total emails found: {len(emails)}")
+    else:
+        pdf.multi_cell_with_wrap(0, 10, "No emails found")
+    pdf.ln(5)
+
     # Login Pages
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Potential Login Pages", 0, 1)
+    pdf.set_font('Arial', '', 12)
     if not login_pages.empty:
         for _, row in login_pages.iterrows():
             pdf.multi_cell_with_wrap(0, 10, truncate(str(row['URL'])))
-    
+        pdf.multi_cell_with_wrap(0, 10, f"Total login pages found: {len(login_pages)}")
+    else:
+        pdf.multi_cell_with_wrap(0, 10, "No potential login pages found")
+    pdf.ln(5)
+
     # Console Pages
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Potential Console Login Pages", 0, 1)
+    pdf.set_font('Arial', '', 12)
     if not console_pages.empty:
         for _, row in console_pages.iterrows():
             pdf.multi_cell_with_wrap(0, 10, truncate(str(row['URL'])))
-    
+        pdf.multi_cell_with_wrap(0, 10, f"Total console pages found: {len(console_pages)}")
+    else:
+        pdf.multi_cell_with_wrap(0, 10, "No potential console login pages found")
+    pdf.ln(5)
+
     # Security Information
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Security Information", 0, 1)
+    pdf.set_font('Arial', '', 12)
     for key, value in security_info.items():
         pdf.multi_cell_with_wrap(0, 10, f"{key}: {truncate(str(value))}")
-    
+    pdf.ln(5)
+
     # Data Leaks
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Potential Data Leaks", 0, 1)
+    pdf.set_font('Arial', '', 12)
     for leak_type, leaks in data_leaks.items():
         pdf.multi_cell_with_wrap(0, 10, f"{leak_type}: {truncate(', '.join(list(leaks)[:5]))}")
-    
+    pdf.ln(5)
+
     # Network Information
+    pdf.set_font('Arial', 'B', 14)
+    pdf.cell(0, 10, "Network Information", 0, 1)
+    pdf.set_font('Arial', '', 12)
     for key, value in network_info.items():
         if key == 'Traceroute' and isinstance(value, pd.DataFrame) and not value.empty:
             pdf.ln(5)
@@ -376,6 +410,9 @@ def generate_security_summary_pdf(url, emails, login_pages, console_pages, secur
                 pdf.multi_cell_with_wrap(0, 10, truncate(f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname']}"))
         else:
             pdf.multi_cell_with_wrap(0, 10, f"{key}: {truncate(str(value))}")
+    pdf.ln(5)
+
+    return pdf.output(dest='S').encode('latin-1')
 
     # ... (rest of the function remains unchanged)
 class PDF(FPDF):
