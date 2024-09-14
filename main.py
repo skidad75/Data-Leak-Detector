@@ -30,8 +30,8 @@ This tool is designed to help you identify potential data leaks and security vul
 """)
 
 # Update these lines
-st.page_link("pages/web_scraper_app.py", label="Web Scraper 🌐")
-st.page_link("pages/Wall_of_Sheep.py", label="Wall of Sheep 🐑")
+st.sidebar.page_link("Web Scraper", label="Web Scraper 🌐")
+st.sidebar.page_link("Wall of Sheep", label="Wall of Sheep 🐑")
 
 st.markdown("""
 ### Important Note:
