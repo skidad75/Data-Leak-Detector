@@ -524,9 +524,9 @@ class PDF(FPDF):
                 pdf.multi_cell_with_wrap(0, 10, f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname'][:50]}")  # Limit hostname to 50 characters
         else:
             pdf.multi_cell_with_wrap(0, 10, f"{key}: {str(value)[:200]}")  # Limit to 200 characters
-    pdf.ln(5)
+            pdf.ln(5)
 
-    return pdf.output(dest='S').encode('latin-1')
+        return pdf.output(dest='S').encode('latin-1')
 
 # Main Streamlit app
 st.title("Data Leak Detector")
