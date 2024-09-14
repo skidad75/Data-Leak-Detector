@@ -31,7 +31,7 @@ This tool is designed to help you identify potential data leaks and security vul
 
 # Add links to other pages
 st.page_link("pages/web_scraper_app.py", label="Web Scraper 🌐")
-st.page_link("pages/01_Wall_of_Sheep.py", label="Wall of Sheep 🐑")
+st.page_link("pages/Wall_of_Sheep.py", label="Wall of Sheep 🐑")
 
 st.markdown("""
 ### Important Note:
@@ -45,7 +45,7 @@ The developers of this tool are not responsible for any misuse or damage caused 
 
 st.sidebar.markdown("### Quick Links")
 st.sidebar.page_link("pages/web_scraper_app.py", label="Start Scanning 🚀")
-st.sidebar.page_link("pages/01_Wall_of_Sheep.py", label="View Wall of Sheep 🐑")
+st.sidebar.page_link("pages/Wall_of_Sheep.py", label="View Wall of Sheep 🐑")
 
 st.sidebar.markdown("---")
 st.sidebar.info("Developed with ❤️ by Your Team")
