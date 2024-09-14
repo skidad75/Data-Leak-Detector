@@ -417,7 +417,7 @@ st.sidebar.warning("⚠️ Do not use on systems you don't own or have explicit 
 
 # Add a link to the Wall of Sheep page
 st.sidebar.markdown("### Quick Links")
-st.sidebar.page_link("01_Wall_of_Sheep.py", label="Wall of Sheep 🐑")
+st.sidebar.page_link("Wall_of_Sheep.py", label="Wall of Sheep 🐑")
 
 # User input
 url = st.text_input("Enter a URL to scan:")
