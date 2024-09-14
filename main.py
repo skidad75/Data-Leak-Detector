@@ -29,7 +29,7 @@ This tool is designed to help you identify potential data leaks and security vul
 
 """)
 
-# Add links to other pages
+# Update these lines
 st.page_link("pages/web_scraper_app.py", label="Web Scraper 🌐")
 st.page_link("pages/Wall_of_Sheep.py", label="Wall of Sheep 🐑")
 
