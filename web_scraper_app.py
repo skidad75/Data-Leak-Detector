@@ -342,7 +342,7 @@ def get_user_ip():
     except:
         return "Unable to retrieve IP"
 
-def generate_pdf(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
+def generate_pdf_report(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
     pdf = FPDF()
     pdf.add_page()
     
@@ -380,7 +380,7 @@ def generate_pdf(url, emails, login_pages, console_pages, security_info, data_le
     pdf.cell(0, 10, "Security Information:", ln=True)
     pdf.set_font("Arial", "", 12)
     for key, value in security_info.items():
-        pdf.cell(0, 10, f"{key}: {value}", ln=True)
+        pdf.multi_cell(0, 10, f"{key}: {str(value)}")
     pdf.ln(5)
 
     # Data Leaks
@@ -388,7 +388,7 @@ def generate_pdf(url, emails, login_pages, console_pages, security_info, data_le
     pdf.cell(0, 10, "Potential Data Leaks:", ln=True)
     pdf.set_font("Arial", "", 12)
     for leak_type, leaks in data_leaks.items():
-        pdf.cell(0, 10, f"{leak_type}: {', '.join(list(leaks)[:10])}", ln=True)
+        pdf.multi_cell(0, 10, f"{leak_type}: {', '.join(list(leaks)[:10])}")
     pdf.ln(5)
 
     # Network Information
@@ -396,16 +396,14 @@ def generate_pdf(url, emails, login_pages, console_pages, security_info, data_le
     pdf.cell(0, 10, "Network Information:", ln=True)
     pdf.set_font("Arial", "", 12)
     for key, value in network_info.items():
-        pdf.cell(0, 10, f"{key}: {value}", ln=True)
+        pdf.multi_cell(0, 10, f"{key}: {str(value)}")
     pdf.ln(5)
 
-    # Save the PDF
+    # Generate PDF
     pdf_buffer = io.BytesIO()
     pdf.output(pdf_buffer)
     pdf_buffer.seek(0)
-    b64 = base64.b64encode(pdf_buffer.read()).decode()
-    href = f'<a href="data:application/pdf;base64,{b64}" download="security_report.pdf">Download PDF</a>'
-    st.markdown(href, unsafe_allow_html=True)
+    return pdf_buffer
 
 # Main Streamlit app
 # Remove the following line:
@@ -458,5 +456,12 @@ if st.button("Run Analysis"):
             # Display network info
             st.write("Network Information:")
             st.json(network_info)
+
+        # Generate PDF report
+        if st.button("Generate PDF Report"):
+            pdf_buffer = generate_pdf_report(url, emails, login_pages, console_pages, security_info, data_leaks, network_info)
+            b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
+            href = f'<a href="data:application/pdf;base64,{b64}" download="security_report.pdf">Download PDF Report</a>'
+            st.markdown(href, unsafe_allow_html=True)
     else:
         st.error("Please enter a URL to scan.")
