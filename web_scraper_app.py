@@ -333,37 +333,85 @@ def get_user_ip():
 import textwrap
 
 def generate_security_summary_pdf(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
-    class PDF(FPDF):
-        def __init__(self):
-            super().__init__(orientation='L', unit='mm', format='A4')
-            self.set_margins(10, 10, 10)
+    # ... (existing code)
 
-        def header(self):
-            self.set_font('Arial', 'B', 12)
-            self.cell(0, 10, 'Security Summary Report', 0, 1, 'C')
-            self.ln(10)
+    def truncate(text, max_length=200):
+        return (text[:max_length] + '...') if len(text) > max_length else text
 
-        def footer(self):
-            self.set_y(-15)
-            self.set_font('Arial', 'I', 8)
-            self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+    # ... (existing code)
 
-        def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
-            max_width = self.w - self.r_margin - self.l_margin
-            words = txt.split()
-            line = ''
-            for word in words:
-                if self.get_string_width(line + ' ' + word) <= max_width:
-                    line += ' ' + word if line else word
-                else:
-                    if line:
-                        self.multi_cell(w, h, line, border, align, fill)
-                    line = word
-                    while self.get_string_width(line) > max_width:
-                        self.multi_cell(w, h, line[:int(max_width/self.get_string_width('a'))], border, align, fill)
-                        line = line[int(max_width/self.get_string_width('a')):]
-            if line:
-                self.multi_cell(w, h, line, border, align, fill)
+    # Update the following sections to use truncation:
+
+    # Emails
+    if not emails.empty:
+        for _, row in emails.iterrows():
+            pdf.multi_cell_with_wrap(0, 10, truncate(str(row['Email'])))
+    
+    # Login Pages
+    if not login_pages.empty:
+        for _, row in login_pages.iterrows():
+            pdf.multi_cell_with_wrap(0, 10, truncate(str(row['URL'])))
+    
+    # Console Pages
+    if not console_pages.empty:
+        for _, row in console_pages.iterrows():
+            pdf.multi_cell_with_wrap(0, 10, truncate(str(row['URL'])))
+    
+    # Security Information
+    for key, value in security_info.items():
+        pdf.multi_cell_with_wrap(0, 10, f"{key}: {truncate(str(value))}")
+    
+    # Data Leaks
+    for leak_type, leaks in data_leaks.items():
+        pdf.multi_cell_with_wrap(0, 10, f"{leak_type}: {truncate(', '.join(list(leaks)[:5]))}")
+    
+    # Network Information
+    for key, value in network_info.items():
+        if key == 'Traceroute' and isinstance(value, pd.DataFrame) and not value.empty:
+            pdf.ln(5)
+            pdf.set_font('Arial', 'B', 14)
+            pdf.cell(0, 10, "Traceroute", 0, 1)
+            pdf.set_font('Arial', '', 12)
+            for _, row in value.iterrows():
+                pdf.multi_cell_with_wrap(0, 10, truncate(f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname']}"))
+        else:
+            pdf.multi_cell_with_wrap(0, 10, f"{key}: {truncate(str(value))}")
+
+    # ... (rest of the function remains unchanged)
+class PDF(FPDF):
+    def __init__(self):
+        super().__init__(orientation='L', unit='mm', format='A4')
+        self.set_margins(10, 10, 10)
+
+    def header(self):
+        self.set_font('Arial', 'B', 12)
+        self.cell(0, 10, 'Security Summary Report', 0, 1, 'C')
+        self.ln(10)
+
+    def footer(self):
+        self.set_y(-15)
+        self.set_font('Arial', 'I', 8)
+        self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
+
+    def multi_cell_with_wrap(self, w, h, txt, border=0, align='J', fill=False):
+        max_width = self.w - self.r_margin - self.l_margin
+        words = txt.split()
+        line = ''
+        for word in words:
+            if self.get_string_width(line + ' ' + word) <= max_width:
+                line += ' ' + word if line else word
+            else:
+                if line:
+                    self.multi_cell(w, h, line, border, align, fill)
+                line = word
+                while self.get_string_width(word) > max_width:
+                    # Split the word if it's too long
+                    split_index = int(max_width / self.get_string_width('a'))
+                    self.multi_cell(w, h, word[:split_index], border, align, fill)
+                    word = word[split_index:]
+                line = word
+        if line:
+            self.multi_cell(w, h, line, border, align, fill)
 
     pdf = PDF()
     pdf.add_page()
