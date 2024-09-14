@@ -515,16 +515,16 @@ class PDF(FPDF):
     pdf.cell(0, 10, "Network Information", 0, 1)
     pdf.set_font('Arial', '', 12)
     for key, value in network_info.items():
-    if key == 'Traceroute' and isinstance(value, pd.DataFrame) and not value.empty:
-        pdf.ln(5)
-        pdf.set_font('Arial', 'B', 14)
-        pdf.cell(0, 10, "Traceroute", 0, 1)
-        pdf.set_font('Arial', '', 12)
-        for _, row in value.iterrows():
+        if key == 'Traceroute' and isinstance(value, pd.DataFrame) and not value.empty:
+            pdf.ln(5)
+            pdf.set_font('Arial', 'B', 14)
+            pdf.cell(0, 10, "Traceroute", 0, 1)
+            pdf.set_font('Arial', '', 12)
+            for _, row in value.iterrows():
                 pdf.multi_cell_with_wrap(0, 10, f"Hop: {row['Hop']} | IP: {row['IP']} | Hostname: {row['Hostname'][:50]}")  # Limit hostname to 50 characters
-    else:
-        pdf.multi_cell_with_wrap(0, 10, f"{key}: {str(value)[:200]}")  # Limit to 200 characters
-        pdf.ln(5)
+        else:
+            pdf.multi_cell_with_wrap(0, 10, f"{key}: {str(value)[:200]}")  # Limit to 200 characters
+            pdf.ln(5)
 
     return pdf.output(dest='S').encode('latin-1')
 
