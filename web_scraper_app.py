@@ -333,9 +333,15 @@ def get_user_ip():
 # Main Streamlit app
 st.title("Data Leak Detector")
 
+# Display user's IP address and warnings
+user_ip = get_user_ip()
+st.sidebar.warning(f"Your IP address: {user_ip}")
+st.sidebar.warning("⚠️ This tool is for educational purposes only.")
+st.sidebar.warning("⚠️ Do not use on systems you don't own or have explicit permission to test.")
+
 # User input
 url = st.text_input("Enter a URL to scan:")
-max_depth = st.slider("Maximum crawl depth:", 1, 5, 2)
+max_depth = st.slider("Maximum crawl depth:", 1, 5, 1)  # Default set to 1
 
 # Run button
 if st.button("Run Analysis"):
@@ -374,11 +380,5 @@ if st.button("Run Analysis"):
             # Display network info
             st.write("Network Information:")
             st.json(network_info)
-
-            # Remove the PDF generation and download button
     else:
         st.error("Please enter a URL to scan.")
-
-# Display user's IP address
-user_ip = get_user_ip()
-st.sidebar.write(f"Your IP address: {user_ip}")
