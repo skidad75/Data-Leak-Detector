@@ -526,7 +526,7 @@ class PDF(FPDF):
             pdf.multi_cell_with_wrap(0, 10, f"{key}: {str(value)[:200]}")  # Limit to 200 characters
             pdf.ln(5)
 
-    return pdf.output(dest='S').encode('latin-1')
+        return pdf.output(dest='S').encode('latin-1')
 
 # Main Streamlit app
 st.title("Data Leak Detector")
