@@ -1,7 +1,8 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
-from datetime import datetime
+from datetime import datetime, timedelta
+import random
 
 # Set page config
 st.set_page_config(page_title="Wall of Sheep", page_icon="🐑", layout="wide")
@@ -36,15 +37,27 @@ def get_location(ip_address):
         return "GeoIP not enabled"
 
 def load_data():
-    conn = sqlite3.connect('search_history.db')
-    query = '''
-        SELECT ip_address, url, timestamp
-        FROM searches
-        ORDER BY timestamp DESC
-        LIMIT 20
-    '''
-    df = pd.read_sql_query(query, conn)
-    conn.close()
+    try:
+        conn = sqlite3.connect('search_history.db')
+        query = '''
+            SELECT ip_address, url, timestamp
+            FROM searches
+            ORDER BY timestamp DESC
+            LIMIT 20
+        '''
+        df = pd.read_sql_query(query, conn)
+        conn.close()
+    except sqlite3.OperationalError:
+        st.warning("The 'searches' table doesn't exist. Displaying sample data instead.")
+        # Generate sample data
+        sample_data = []
+        now = datetime.now()
+        for _ in range(20):
+            ip = f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}"
+            url = random.choice(["http://example.com", "http://sample.org", "http://test.net"])
+            timestamp = now - timedelta(minutes=random.randint(1, 60))
+            sample_data.append({"ip_address": ip, "url": url, "timestamp": timestamp})
+        df = pd.DataFrame(sample_data)
     
     df['location'] = df['ip_address'].apply(get_location)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
