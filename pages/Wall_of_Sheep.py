@@ -119,3 +119,6 @@ elif page == "Statistics":
 # Footer
 st.sidebar.markdown("---")
 st.sidebar.info("This is a demo application. Data shown is for illustrative purposes only.")
+
+# Add this line to link back to the home page
+st.sidebar.page_link("/", label="Home 🏠")
