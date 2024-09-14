@@ -415,6 +415,10 @@ st.sidebar.warning(f"Your IP address: {user_ip}")
 st.sidebar.warning("⚠️ This tool is for educational purposes only.")
 st.sidebar.warning("⚠️ Do not use on systems you don't own or have explicit permission to test.")
 
+# Add a link to the Wall of Sheep page
+st.sidebar.markdown("### Quick Links")
+st.sidebar.page_link("pages/01_Wall_of_Sheep.py", label="Wall of Sheep 🐑")
+
 # User input
 url = st.text_input("Enter a URL to scan:")
 max_depth = st.slider("Maximum crawl depth:", 1, 5, 1)  # Default set to 1
