@@ -1,7 +1,7 @@
 import streamlit as st
 
 # Set page config as the first Streamlit command
-st.set_page_config(layout="wide", page_title="Data Leak Detector")
+st.set_page_config(layout="wide")
 
 # Import other necessary libraries
 import pandas as pd
