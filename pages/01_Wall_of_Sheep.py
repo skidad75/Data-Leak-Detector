@@ -47,7 +47,7 @@ def load_data():
         '''
         df = pd.read_sql_query(query, conn)
         conn.close()
-    except sqlite3.OperationalError:
+    except (sqlite3.OperationalError, pd.io.sql.DatabaseError):
         st.warning("The 'searches' table doesn't exist. Displaying sample data instead.")
         # Generate sample data
         sample_data = []
@@ -58,6 +58,9 @@ def load_data():
             timestamp = now - timedelta(minutes=random.randint(1, 60))
             sample_data.append({"ip_address": ip, "url": url, "timestamp": timestamp})
         df = pd.DataFrame(sample_data)
+    except Exception as e:
+        st.error(f"An unexpected error occurred: {str(e)}")
+        df = pd.DataFrame(columns=["ip_address", "url", "timestamp"])
     
     df['location'] = df['ip_address'].apply(get_location)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
