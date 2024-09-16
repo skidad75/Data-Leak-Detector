@@ -1,6 +1,11 @@
 import streamlit as st
 
 st.set_page_config(page_title="Data Leak Detector", page_icon="🕵️", layout="wide")
+tool_page = st.Page("web_scraper_app.py", title="Data Leak Tool", icon="🔧")
+sheep_page = st.Page("Wall_of_Sheep.py", title="Wall of Sheep", icon="🐑")
+pg = st.navigation([tool_page, sheep_page])
+pg.run()
+
 
 st.title("Data Leak Detector 🕵️")
 
@@ -39,11 +44,6 @@ This tool is for educational and ethical testing purposes only. Always ensure yo
 The developers of this tool are not responsible for any misuse or damage caused by this program. Use at your own risk and always adhere to ethical guidelines and legal requirements when conducting security assessments.
 """)
 
-
-pg = st.navigation([st.Page("web_scraper_app.py"), st.Page("Wall_of_Sheep.py")])
-
-
-pg.run()
 
 
 st.sidebar.info("Developed with ❤️")
