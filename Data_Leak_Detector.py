@@ -40,7 +40,7 @@ The developers of this tool are not responsible for any misuse or damage caused 
 """)
 
 
-pg = st.navigation([st.Page("web_scraper_app.py",label="Data Leak Tool"), st.Page("Wall_of_Sheep.py", label="Wall of Sheep")])
+pg = st.navigation([st.Page("web_scraper_app.py"), st.Page("Wall_of_Sheep.py")])
 
 
 pg.run()
