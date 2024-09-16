@@ -29,10 +29,6 @@ This tool is designed to help you identify potential data leaks and security vul
 
 """)
 
-# Update these lines
-st.page_link("web_scraper_app.py", label="Data Leak Detector", icon="🌐")
-st.page_link("Wall_of_Sheep.py", label="Wall of Sheep", icon="🐑")
-
 st.markdown("""
 ### Important Note:
 
@@ -45,6 +41,6 @@ The developers of this tool are not responsible for any misuse or damage caused 
 
 
 st.sidebar.markdown("---")
-st.sidebar.page_link("web_scraper_app", label="Start Scanning 🚀")
-st.sidebar.page_link("Wall_of_Sheep", label="View Wall of Sheep 🐑")
-st.sidebar.info("Developed with ❤️ by Your Team")
+st.sidebar.page_link("web_scraper_app.py", label="Start Scanning", icon="🚀")
+st.sidebar.page_link("Wall_of_Sheep", label="View Wall of Sheep", icon="🐑")
+st.sidebar.info("Developed with ❤️")
