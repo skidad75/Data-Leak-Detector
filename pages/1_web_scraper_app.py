@@ -6,7 +6,18 @@ import concurrent.futures
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
 
-# Add the title
+# Add this line to set the page title in the sidebar
+st.sidebar.header("Data Leak Tool")
+
+# Hide the default page title in the main area
+st.markdown("""
+    <style>
+    #data-leak-tool {
+        display: none;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
 st.title("Data Leak Tool")
 
 # Import other necessary libraries
