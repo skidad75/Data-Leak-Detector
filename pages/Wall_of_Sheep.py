@@ -72,7 +72,7 @@ page = st.sidebar.radio("Go to", ["Recent Searches", "Map View", "Statistics"])
 
 # Main content
 st.title("Wall of Sheep 🐑")
-st.sidebar.page_link("pages/Data_Leak_Detector.py", label="Home 🏠")
+st.sidebar.page_link("pages/Data_Leak_Detector.py", label="Home", icon="🏠")
 data = load_data()
 
 if page == "Recent Searches":
