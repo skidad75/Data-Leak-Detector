@@ -40,7 +40,10 @@ The developers of this tool are not responsible for any misuse or damage caused 
 """)
 
 
-st.sidebar.markdown("---")
-st.sidebar.page_link("pages/web_scraper_app.py", label="Start Scanning", icon="🚀")
-st.sidebar.page_link("pages/Wall_of_Sheep.py", label="View Wall of Sheep", icon="🐑")
+pg = st.navigation([st.Page("web_scraper_app.py",label="Data Leak Tool"), st.Page("Wall_of_Sheep.py", label="Wall of Sheep")])
+
+
+pg.run()
+
+
 st.sidebar.info("Developed with ❤️")
