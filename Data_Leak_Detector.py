@@ -42,4 +42,6 @@ This tool is for educational and ethical testing purposes only. Always ensure yo
 The developers of this tool are not responsible for any misuse or damage caused by this program. Use at your own risk and always adhere to ethical guidelines and legal requirements when conducting security assessments.
 """)
 
-st.sidebar.info("Developed with ❤️")
+st.sidebar.markdown("""
+Developed with ❤️ | [Buy Me a Coffee](https://www.buymeacoffee.com/skidad75)
+""")
