@@ -417,7 +417,7 @@ st.sidebar.warning("⚠️ Do not use on systems you don't own or have explicit 
 
 # Add a link to the Wall of Sheep page
 st.sidebar.markdown("### Quick Links")
-st.sidebar.page_link("Data_Leak_Detector", label="Home 🏠")
+st.sidebar.page_link("pages/Data_Leak_Detector.py", label="Home 🏠")
 
 # User input
 url = st.text_input("Enter a URL to scan:")
