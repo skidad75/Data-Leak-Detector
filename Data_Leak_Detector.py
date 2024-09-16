@@ -20,7 +20,7 @@ This tool is designed to help you identify potential data leaks and security vul
 
 ### How to Use:
 
-1. Navigate to the "Web Scraper" page using the sidebar.
+1. Navigate to the "Data Leak Tool" page using the sidebar.
 2. Enter the URL you want to analyze.
 3. Set the maximum crawl depth.
 4. Click "Run Analysis" and wait for the results.
