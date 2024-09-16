@@ -30,8 +30,8 @@ This tool is designed to help you identify potential data leaks and security vul
 """)
 
 # Update these lines
-st.page_link("pages/web_scraper_app", label="Web Scraper 🌐")
-st.page_link("pages/Wall_of_Sheep", label="Wall of Sheep 🐑")
+st.page_link("web_scraper_app", label="Web Scraper 🌐")
+st.page_link("Wall_of_Sheep", label="Wall of Sheep 🐑")
 
 st.markdown("""
 ### Important Note:
@@ -45,4 +45,6 @@ The developers of this tool are not responsible for any misuse or damage caused 
 
 
 st.sidebar.markdown("---")
+st.sidebar.page_link("web_scraper_app", label="Start Scanning 🚀")
+st.sidebar.page_link("Wall_of_Sheep", label="View Wall of Sheep 🐑")
 st.sidebar.info("Developed with ❤️ by Your Team")
