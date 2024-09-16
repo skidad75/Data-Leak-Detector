@@ -30,6 +30,7 @@ This tool is designed to help you identify potential data leaks and security vul
 - Data Leak Tool: Use this page to run the web scraper and analyze websites.
 - Wall of Sheep: View the results of previous scans.
 
+To learn more about this project or contribute, visit our [GitHub repository](https://github.com/skidad75/Data-Leak-Detector).
 """)
 
 st.markdown("""
