@@ -6,7 +6,7 @@ Ever wondered what secrets a website might be inadvertently exposing? Data Leak 
 
 ## 🎥 See It in Action
 
-Try out the Data Leak Detector now at [https://dataleaks.streamlit.app/](https://dataleaks.streamlit.app/)
+Try out the Data Leak Detector now at [https://dataleaker.streamlit.app/](https://dataleaker.streamlit.app/)
 
 ## ✨ Features That Pack a Punch
 
