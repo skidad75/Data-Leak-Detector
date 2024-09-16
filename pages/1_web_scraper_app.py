@@ -6,6 +6,9 @@ import concurrent.futures
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
 
+# Add the title
+st.title("Data Leak Tool")
+
 # Import other necessary libraries
 import pandas as pd
 import re
@@ -404,10 +407,6 @@ def generate_pdf_report(url, emails, login_pages, console_pages, security_info, 
     pdf.output(pdf_buffer)
     pdf_buffer.seek(0)
     return pdf_buffer
-
-# Main Streamlit app
-# Remove the following line:
-# st.title("Data Leak Detector")
 
 # Display user's IP address and warnings
 user_ip = get_user_ip()
