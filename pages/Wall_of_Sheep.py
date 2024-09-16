@@ -72,7 +72,7 @@ page = st.sidebar.radio("Go to", ["Recent Searches", "Map View", "Statistics"])
 
 # Main content
 st.title("Wall of Sheep 🐑")
-st.sidebar.page_link("Data Leak Detector", label="Home 🏠")
+st.sidebar.page_link("Data_Leak_Detector", label="Home 🏠")
 data = load_data()
 
 if page == "Recent Searches":
@@ -121,4 +121,4 @@ st.sidebar.markdown("---")
 st.sidebar.info("This is a demo application. Data shown is for illustrative purposes only.")
 
 # Add this line to link back to the home page
-st.sidebar.page_link("/", label="Home 🏠")
+st.sidebar.page_link("Data_Leak_Detector", label="Home 🏠")
