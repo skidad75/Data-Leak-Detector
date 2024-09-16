@@ -4,7 +4,7 @@ from requests.exceptions import Timeout, RequestException
 import concurrent.futures
 
 # Set page config as the first Streamlit command
-st.set_page_config(layout="wide", page_title="Data Leak Detector")
+st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
 
 # Import other necessary libraries
 import pandas as pd
@@ -415,9 +415,7 @@ st.sidebar.warning(f"Your IP address: {user_ip}")
 st.sidebar.warning("⚠️ This tool is for educational purposes only.")
 st.sidebar.warning("⚠️ Do not use on systems you don't own or have explicit permission to test.")
 
-# Add a link to the Wall of Sheep page
-st.sidebar.markdown("### Quick Links")
-st.sidebar.page_link("pages/Data_Leak_Detector.py", label="Home", icon="🏠")
+
 
 # User input
 url = st.text_input("Enter a URL to scan:")
