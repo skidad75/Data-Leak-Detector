@@ -120,5 +120,5 @@ elif page == "Statistics":
 st.sidebar.markdown("---")
 st.sidebar.info("This is a demo application. Data shown is for illustrative purposes only.")
 
-# Add this line to link back to the home page
-st.sidebar.page_link("Data_Leak_Detector", label="Home 🏠")
+# The following line has been removed:
+# st.sidebar.page_link("Data_Leak_Detector", label="Home 🏠")
