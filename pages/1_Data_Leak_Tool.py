@@ -362,16 +362,16 @@ def get_user_ip():
     except:
         return "Unable to retrieve IP"
 
-def generate_csv_report(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
+def generate_csv_report(results):
     # Create a dictionary to hold all the data
     data = {
-        'URL': [url],
-        'Emails Found': [', '.join(emails['Email'].tolist()) if isinstance(emails, pd.DataFrame) else str(emails)],
-        'Potential Login Pages': [', '.join(login_pages['URL'].tolist()) if isinstance(login_pages, pd.DataFrame) else str(login_pages)],
-        'Potential Console Pages': [', '.join(console_pages['URL'].tolist()) if isinstance(console_pages, pd.DataFrame) else str(console_pages)],
-        'Security Information': [str(security_info)],
-        'Potential Data Leaks': [str(data_leaks)],
-        'Network Information': [str(network_info)]
+        'URL': [results.get('url', 'N/A')],
+        'Emails Found': [', '.join(results.get('emails', pd.DataFrame()).get('Email', []).tolist())],
+        'Potential Login Pages': [', '.join(results.get('login_pages', pd.DataFrame()).get('URL', []).tolist())],
+        'Potential Console Pages': [', '.join(results.get('console_pages', pd.DataFrame()).get('URL', []).tolist())],
+        'Security Information': [str(results.get('security_info', {}))],
+        'Potential Data Leaks': [str(results.get('data_leaks', {}))],
+        'Network Information': [str(results.get('network_info', {}))]
     }
 
     # Create a DataFrame
@@ -452,15 +452,7 @@ if st.session_state.analysis_run and st.session_state.analysis_progress >= 0.8:
     if st.button("Generate CSV Report", key="generate_csv_button"):
         try:
             results = st.session_state.analysis_results
-            csv_buffer = generate_csv_report(
-                results['url'],
-                results['emails'],
-                results['login_pages'],
-                results['console_pages'],
-                results['security_info'],
-                results['data_leaks'],
-                results['network_info']
-            )
+            csv_buffer = generate_csv_report(results)
             b64 = base64.b64encode(csv_buffer.getvalue().encode()).decode()
             href = f'<a href="data:file/csv;base64,{b64}" download="security_report.csv">Download CSV Report</a>'
             st.markdown(href, unsafe_allow_html=True)
