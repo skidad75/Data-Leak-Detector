@@ -365,53 +365,32 @@ def generate_pdf_report(url, emails, login_pages, console_pages, security_info, 
     pdf.cell(0, 10, f"Security Analysis Report for {url}", ln=True)
     pdf.ln(10)
 
-    # Emails
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Emails Found:", ln=True)
-    pdf.set_font("Arial", "", 12)
-    for _, row in emails.iterrows():
-        pdf.multi_cell(0, 10, row['Email'])
-    pdf.ln(5)
+    # Helper function to safely write content
+    def safe_write(title, content):
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(0, 10, title, ln=True)
+        pdf.set_font("Arial", "", 12)
+        if isinstance(content, pd.DataFrame):
+            for _, row in content.iterrows():
+                for item in row:
+                    pdf.multi_cell(0, 10, str(item)[:200])  # Limit to 200 characters
+        elif isinstance(content, dict):
+            for key, value in content.items():
+                pdf.multi_cell(0, 10, f"{key}: {str(value)[:200]}")  # Limit to 200 characters
+        elif isinstance(content, list):
+            for item in content:
+                pdf.multi_cell(0, 10, str(item)[:200])  # Limit to 200 characters
+        else:
+            pdf.multi_cell(0, 10, str(content)[:200])  # Limit to 200 characters
+        pdf.ln(5)
 
-    # Login Pages
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Potential Login Pages:", ln=True)
-    pdf.set_font("Arial", "", 12)
-    for _, row in login_pages.iterrows():
-        pdf.multi_cell(0, 10, row['URL'])
-    pdf.ln(5)
-
-    # Console Pages
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Potential Console Login Pages:", ln=True)
-    pdf.set_font("Arial", "", 12)
-    for _, row in console_pages.iterrows():
-        pdf.multi_cell(0, 10, row['URL'])
-    pdf.ln(5)
-
-    # Security Information
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Security Information:", ln=True)
-    pdf.set_font("Arial", "", 12)
-    for key, value in security_info.items():
-        pdf.multi_cell(0, 10, f"{key}: {str(value)}")
-    pdf.ln(5)
-
-    # Data Leaks
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Potential Data Leaks:", ln=True)
-    pdf.set_font("Arial", "", 12)
-    for leak_type, leaks in data_leaks.items():
-        pdf.multi_cell(0, 10, f"{leak_type}: {', '.join(list(leaks)[:10])}")
-    pdf.ln(5)
-
-    # Network Information
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 10, "Network Information:", ln=True)
-    pdf.set_font("Arial", "", 12)
-    for key, value in network_info.items():
-        pdf.multi_cell(0, 10, f"{key}: {str(value)}")
-    pdf.ln(5)
+    # Write content
+    safe_write("Emails Found:", emails)
+    safe_write("Potential Login Pages:", login_pages)
+    safe_write("Potential Console Login Pages:", console_pages)
+    safe_write("Security Information:", security_info)
+    safe_write("Potential Data Leaks:", data_leaks)
+    safe_write("Network Information:", network_info)
 
     # Generate PDF
     pdf_buffer = io.BytesIO()
@@ -491,16 +470,19 @@ if st.button("Run Analysis"):
 # Move the PDF generation button outside the "Run Analysis" block
 if st.session_state.analysis_run:
     if st.button("Generate PDF Report"):
-        results = st.session_state.analysis_results
-        pdf_buffer = generate_pdf_report(
-            results['url'],
-            results['emails'],
-            results['login_pages'],
-            results['console_pages'],
-            results['security_info'],
-            results['data_leaks'],
-            results['network_info']
-        )
-        b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
-        href = f'<a href="data:application/pdf;base64,{b64}" download="security_report.pdf">Download PDF Report</a>'
-        st.markdown(href, unsafe_allow_html=True)
+        try:
+            results = st.session_state.analysis_results
+            pdf_buffer = generate_pdf_report(
+                results['url'],
+                results['emails'],
+                results['login_pages'],
+                results['console_pages'],
+                results['security_info'],
+                results['data_leaks'],
+                results['network_info']
+            )
+            b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
+            href = f'<a href="data:application/pdf;base64,{b64}" download="security_report.pdf">Download PDF Report</a>'
+            st.markdown(href, unsafe_allow_html=True)
+        except Exception as e:
+            st.error(f"An error occurred while generating the PDF: {str(e)}")
