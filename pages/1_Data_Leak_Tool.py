@@ -358,30 +358,41 @@ def get_user_ip():
 
 def generate_pdf_report(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
     pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=15)
     pdf.add_page()
     
     # Title
     pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, f"Security Analysis Report for {url}", ln=True)
-    pdf.ln(10)
+    pdf.cell(0, 10, f"Security Analysis Report", ln=True)
+    pdf.set_font("Arial", "", 12)
+    pdf.multi_cell(0, 10, f"URL: {url}", ln=True)
+    pdf.ln(5)
 
     # Helper function to safely write content
     def safe_write(title, content):
         pdf.set_font("Arial", "B", 14)
         pdf.cell(0, 10, title, ln=True)
-        pdf.set_font("Arial", "", 12)
+        pdf.set_font("Arial", "", 10)
+        
         if isinstance(content, pd.DataFrame):
             for _, row in content.iterrows():
                 for item in row:
-                    pdf.multi_cell(0, 10, str(item)[:200])  # Limit to 200 characters
+                    wrapped_text = textwrap.fill(str(item), width=80)
+                    pdf.multi_cell(0, 5, wrapped_text)
+                pdf.ln(2)
         elif isinstance(content, dict):
             for key, value in content.items():
-                pdf.multi_cell(0, 10, f"{key}: {str(value)[:200]}")  # Limit to 200 characters
+                wrapped_text = textwrap.fill(f"{key}: {str(value)}", width=80)
+                pdf.multi_cell(0, 5, wrapped_text)
+                pdf.ln(2)
         elif isinstance(content, list):
             for item in content:
-                pdf.multi_cell(0, 10, str(item)[:200])  # Limit to 200 characters
+                wrapped_text = textwrap.fill(str(item), width=80)
+                pdf.multi_cell(0, 5, wrapped_text)
+                pdf.ln(2)
         else:
-            pdf.multi_cell(0, 10, str(content)[:200])  # Limit to 200 characters
+            wrapped_text = textwrap.fill(str(content), width=80)
+            pdf.multi_cell(0, 5, wrapped_text)
         pdf.ln(5)
 
     # Write content
