@@ -425,7 +425,11 @@ st.sidebar.warning(f"Your IP address: {user_ip}")
 st.sidebar.warning("⚠️ This tool is for educational purposes only.")
 st.sidebar.warning("⚠️ Do not use on systems you don't own or have explicit permission to test.")
 
-
+# Add these variables at the top of your script, after the imports
+if 'analysis_run' not in st.session_state:
+    st.session_state.analysis_run = False
+if 'analysis_results' not in st.session_state:
+    st.session_state.analysis_results = None
 
 # User input
 url = st.text_input("Enter a URL to scan:")
@@ -440,6 +444,18 @@ if st.button("Run Analysis"):
             
             # Perform network analysis
             network_info = perform_network_analysis(urlparse(url).netloc)
+
+            # Store results in session state
+            st.session_state.analysis_results = {
+                'url': url,
+                'emails': emails,
+                'login_pages': login_pages,
+                'console_pages': console_pages,
+                'security_info': security_info,
+                'data_leaks': data_leaks,
+                'network_info': network_info
+            }
+            st.session_state.analysis_run = True
 
             # Display results
             st.subheader("Analysis Results")
@@ -469,11 +485,22 @@ if st.button("Run Analysis"):
             st.write("Network Information:")
             st.json(network_info)
 
-        # Generate PDF report
-        if st.button("Generate PDF Report"):
-            pdf_buffer = generate_pdf_report(url, emails, login_pages, console_pages, security_info, data_leaks, network_info)
-            b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
-            href = f'<a href="data:application/pdf;base64,{b64}" download="security_report.pdf">Download PDF Report</a>'
-            st.markdown(href, unsafe_allow_html=True)
     else:
         st.error("Please enter a URL to scan.")
+
+# Move the PDF generation button outside the "Run Analysis" block
+if st.session_state.analysis_run:
+    if st.button("Generate PDF Report"):
+        results = st.session_state.analysis_results
+        pdf_buffer = generate_pdf_report(
+            results['url'],
+            results['emails'],
+            results['login_pages'],
+            results['console_pages'],
+            results['security_info'],
+            results['data_leaks'],
+            results['network_info']
+        )
+        b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
+        href = f'<a href="data:application/pdf;base64,{b64}" download="security_report.pdf">Download PDF Report</a>'
+        st.markdown(href, unsafe_allow_html=True)
