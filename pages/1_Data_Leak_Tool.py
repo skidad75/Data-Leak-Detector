@@ -432,57 +432,7 @@ url = st.text_input("Enter a URL to scan:")
 max_depth = st.slider("Maximum crawl depth:", 1, 5, 1)  # Default set to 1
 
 # Run button
-if st.button("Run Analysis"):
-    if url:
-        with st.spinner("Analyzing... This may take a few minutes."):
-            # Perform the analysis
-            emails, login_pages, console_pages, security_info, data_leaks = load_data(url, max_depth)
-            
-            # Perform network analysis
-            network_info = perform_network_analysis(urlparse(url).netloc)
-
-            # Store results in session state
-            st.session_state.analysis_results = {
-                'url': url,
-                'emails': emails,
-                'login_pages': login_pages,
-                'console_pages': console_pages,
-                'security_info': security_info,
-                'data_leaks': data_leaks,
-                'network_info': network_info
-            }
-            st.session_state.analysis_run = True
-
-            # Display results
-            st.subheader("Analysis Results")
-            
-            # ... (rest of the code remains the same) ...
-
-    else:
-        st.error("Please enter a URL to scan.")
-
-# PDF generation button
-if st.session_state.analysis_run and st.session_state.analysis_progress >= 0.8:
-    if st.button("Generate PDF Report"):
-        try:
-            results = st.session_state.analysis_results
-            pdf_buffer = generate_pdf_report(
-                results['url'],
-                results['emails'],
-                results['login_pages'],
-                results['console_pages'],
-                results['security_info'],
-                results['data_leaks'],
-                results['network_info']
-            )
-            b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
-            href = f'<a href="data:application/pdf;base64,{b64}" download="security_report.pdf">Download PDF Report</a>'
-            st.markdown(href, unsafe_allow_html=True)
-        except Exception as e:
-            st.error(f"An error occurred while generating the PDF: {str(e)}")
-else:
-    st.info("PDF report generation will be available when the analysis is at least 80% complete.")
-if st.button("Run Analysis"):
+if st.button("Run Analysis", key="run_analysis_button"):
     if url:
         with st.spinner("Analyzing... This may take a few minutes."):
             # Perform the analysis
@@ -536,7 +486,7 @@ if st.button("Run Analysis"):
 
 # PDF generation button
 if st.session_state.analysis_run and st.session_state.analysis_progress >= 0.8:
-    if st.button("Generate PDF Report"):
+    if st.button("Generate PDF Report", key="generate_pdf_button"):
         try:
             results = st.session_state.analysis_results
             pdf_buffer = generate_pdf_report(
