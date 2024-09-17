@@ -363,12 +363,20 @@ def get_user_ip():
         return "Unable to retrieve IP"
 
 def generate_csv_report(results):
+    def safe_join(data):
+        if isinstance(data, pd.DataFrame):
+            return ', '.join(data.get('Email', data.get('URL', [])).tolist())
+        elif isinstance(data, list):
+            return ', '.join(str(item) for item in data)
+        else:
+            return str(data)
+
     # Create a dictionary to hold all the data
     data = {
         'URL': [results.get('url', 'N/A')],
-        'Emails Found': [', '.join(results.get('emails', pd.DataFrame()).get('Email', []).tolist())],
-        'Potential Login Pages': [', '.join(results.get('login_pages', pd.DataFrame()).get('URL', []).tolist())],
-        'Potential Console Pages': [', '.join(results.get('console_pages', pd.DataFrame()).get('URL', []).tolist())],
+        'Emails Found': [safe_join(results.get('emails', []))],
+        'Potential Login Pages': [safe_join(results.get('login_pages', []))],
+        'Potential Console Pages': [safe_join(results.get('console_pages', []))],
         'Security Information': [str(results.get('security_info', {}))],
         'Potential Data Leaks': [str(results.get('data_leaks', {}))],
         'Network Information': [str(results.get('network_info', {}))]
@@ -458,5 +466,6 @@ if st.session_state.analysis_run and st.session_state.analysis_progress >= 0.8:
             st.markdown(href, unsafe_allow_html=True)
         except Exception as e:
             st.error(f"An error occurred while generating the CSV: {str(e)}")
+            st.error(f"Results structure: {str(results)}")  # Add this line for debugging
 else:
     st.info("CSV report generation will be available when the analysis is at least 80% complete.")
