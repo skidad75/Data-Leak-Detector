@@ -384,21 +384,21 @@ def generate_pdf_report(url, emails, login_pages, console_pages, security_info, 
         if isinstance(content, pd.DataFrame):
             for _, row in content.iterrows():
                 for item in row:
-                    wrapped_text = textwrap.fill(str(item)[:500], width=80)  # Limit to 500 chars
+                    wrapped_text = textwrap.fill(str(item)[:100], width=60)  # Limit to 100 chars, 60 chars width
                     pdf.multi_cell(0, 5, wrapped_text)
                 pdf.ln(2)
         elif isinstance(content, dict):
-            for key, value in list(content.items())[:20]:  # Limit to 20 items
-                wrapped_text = textwrap.fill(f"{key}: {str(value)[:500]}", width=80)
+            for key, value in list(content.items())[:10]:  # Limit to 10 items
+                wrapped_text = textwrap.fill(f"{key}: {str(value)[:100]}", width=60)
                 pdf.multi_cell(0, 5, wrapped_text)
                 pdf.ln(2)
         elif isinstance(content, list):
-            for item in content[:20]:  # Limit to 20 items
-                wrapped_text = textwrap.fill(str(item)[:500], width=80)
+            for item in content[:10]:  # Limit to 10 items
+                wrapped_text = textwrap.fill(str(item)[:100], width=60)
                 pdf.multi_cell(0, 5, wrapped_text)
                 pdf.ln(2)
         else:
-            wrapped_text = textwrap.fill(str(content)[:1000], width=80)  # Limit to 1000 chars
+            wrapped_text = textwrap.fill(str(content)[:500], width=60)  # Limit to 500 chars, 60 chars width
             pdf.multi_cell(0, 5, wrapped_text)
         pdf.ln(5)
 
