@@ -15,7 +15,6 @@ import OpenSSL
 import io
 import base64
 import textwrap
-from fpdf import FPDF
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
@@ -363,63 +362,27 @@ def get_user_ip():
     except:
         return "Unable to retrieve IP"
 
-def generate_pdf_report(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    pdf.add_page()
-    
-    # Title
-    pdf.set_font("Arial", "B", 16)
-    pdf.cell(0, 10, f"Security Analysis Report", ln=True)
-    pdf.set_font("Arial", "", 12)
-    pdf.multi_cell(0, 10, f"URL: {url}", ln=True)
-    pdf.ln(5)
+def generate_csv_report(url, emails, login_pages, console_pages, security_info, data_leaks, network_info):
+    # Create a dictionary to hold all the data
+    data = {
+        'URL': [url],
+        'Emails Found': [', '.join(emails['Email'].tolist()) if isinstance(emails, pd.DataFrame) else str(emails)],
+        'Potential Login Pages': [', '.join(login_pages['URL'].tolist()) if isinstance(login_pages, pd.DataFrame) else str(login_pages)],
+        'Potential Console Pages': [', '.join(console_pages['URL'].tolist()) if isinstance(console_pages, pd.DataFrame) else str(console_pages)],
+        'Security Information': [str(security_info)],
+        'Potential Data Leaks': [str(data_leaks)],
+        'Network Information': [str(network_info)]
+    }
 
-    # Helper function to safely write content
-    def safe_write(title, content):
-        pdf.set_font("Arial", "B", 14)
-        pdf.cell(0, 10, title, ln=True)
-        pdf.set_font("Arial", "", 10)
-        
-        if isinstance(content, pd.DataFrame):
-            for _, row in content.iterrows():
-                for item in row:
-                    wrapped_text = textwrap.fill(str(item)[:100], width=60)  # Limit to 100 chars, 60 chars width
-                    pdf.multi_cell(0, 5, wrapped_text)
-                pdf.ln(2)
-        elif isinstance(content, dict):
-            for key, value in list(content.items())[:10]:  # Limit to 10 items
-                wrapped_text = textwrap.fill(f"{key}: {str(value)[:100]}", width=60)
-                pdf.multi_cell(0, 5, wrapped_text)
-                pdf.ln(2)
-        elif isinstance(content, list):
-            for item in content[:10]:  # Limit to 10 items
-                wrapped_text = textwrap.fill(str(item)[:100], width=60)
-                pdf.multi_cell(0, 5, wrapped_text)
-                pdf.ln(2)
-        else:
-            wrapped_text = textwrap.fill(str(content)[:500], width=60)  # Limit to 500 chars, 60 chars width
-            pdf.multi_cell(0, 5, wrapped_text)
-        pdf.ln(5)
+    # Create a DataFrame
+    df = pd.DataFrame(data)
 
-    # Write content
-    safe_write("Emails Found:", emails)
-    safe_write("Potential Login Pages:", login_pages)
-    safe_write("Potential Console Login Pages:", console_pages)
-    safe_write("Security Information:", security_info)
-    safe_write("Potential Data Leaks:", data_leaks)
-    safe_write("Network Information:", network_info)
-
-    # Generate PDF
-    pdf_buffer = io.BytesIO()
-    pdf.output(pdf_buffer)
-    pdf_buffer.seek(0)
+    # Generate CSV
+    csv_buffer = io.StringIO()
+    df.to_csv(csv_buffer, index=False)
+    csv_buffer.seek(0)
     
-    # Check if PDF size is under 1MB
-    if pdf_buffer.getbuffer().nbytes > 1_000_000:
-        st.warning("PDF size exceeds 1MB. Some content may have been truncated.")
-    
-    return pdf_buffer
+    return csv_buffer
 
 # Display user's IP address and warnings
 user_ip = get_user_ip()
@@ -484,12 +447,12 @@ if st.button("Run Analysis", key="run_analysis_button"):
     else:
         st.error("Please enter a URL to scan.")
 
-# PDF generation button
+# CSV generation button
 if st.session_state.analysis_run and st.session_state.analysis_progress >= 0.8:
-    if st.button("Generate PDF Report", key="generate_pdf_button"):
+    if st.button("Generate CSV Report", key="generate_csv_button"):
         try:
             results = st.session_state.analysis_results
-            pdf_buffer = generate_pdf_report(
+            csv_buffer = generate_csv_report(
                 results['url'],
                 results['emails'],
                 results['login_pages'],
@@ -498,10 +461,10 @@ if st.session_state.analysis_run and st.session_state.analysis_progress >= 0.8:
                 results['data_leaks'],
                 results['network_info']
             )
-            b64 = base64.b64encode(pdf_buffer.getvalue()).decode()
-            href = f'<a href="data:application/pdf;base64,{b64}" download="security_report.pdf">Download PDF Report</a>'
+            b64 = base64.b64encode(csv_buffer.getvalue().encode()).decode()
+            href = f'<a href="data:file/csv;base64,{b64}" download="security_report.csv">Download CSV Report</a>'
             st.markdown(href, unsafe_allow_html=True)
         except Exception as e:
-            st.error(f"An error occurred while generating the PDF: {str(e)}")
+            st.error(f"An error occurred while generating the CSV: {str(e)}")
 else:
-    st.info("PDF report generation will be available when the analysis is at least 80% complete.")
+    st.info("CSV report generation will be available when the analysis is at least 80% complete.")
