@@ -364,9 +364,7 @@ def get_user_ip():
 
 def generate_csv_report(results):
     def safe_join(data):
-        if isinstance(data, pd.DataFrame):
-            return ', '.join(data.get('Email', data.get('URL', [])).tolist())
-        elif isinstance(data, list):
+        if isinstance(data, list):
             return ', '.join(str(item) for item in data)
         else:
             return str(data)
