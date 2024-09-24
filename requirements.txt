@@ -7,3 +7,4 @@ geoip2
 python-whois
 fpdf
 python-nmap
+ipinfo==3.0.0
