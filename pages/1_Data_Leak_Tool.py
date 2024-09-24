@@ -431,20 +431,11 @@ def initialize_database():
     conn.close()
 
 def log_search(ip_address, url):
-    try:
-        conn = sqlite3.connect('search_history.db')
-        cursor = conn.cursor()
-        cursor.execute('INSERT INTO searches (ip_address, url) VALUES (?, ?)', (ip_address, url))
-        conn.commit()
-    except sqlite3.OperationalError:
-        st.error("Error: Unable to log search. The database might not be initialized.")
-        initialize_database()  # Try to initialize the database
-        st.warning("Database has been initialized. Please try your search again.")
-    except Exception as e:
-        st.error(f"An unexpected error occurred: {str(e)}")
-    finally:
-        if conn:
-            conn.close()
+    conn = sqlite3.connect('search_history.db')
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO searches (ip_address, url) VALUES (?, ?)', (ip_address, url))
+    conn.commit()
+    conn.close()
 
 # After imports and before any other code
 initialize_database()
