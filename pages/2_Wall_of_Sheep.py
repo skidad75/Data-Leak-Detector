@@ -7,34 +7,14 @@ import random
 # Set page config
 st.set_page_config(page_title="Wall of Sheep", page_icon="🐑", layout="wide")
 
-# Optional GeoIP functionality
-use_geoip = st.sidebar.checkbox("Use GeoIP (requires database file)", value=False)
-
-if use_geoip:
-    import geoip2.database
-    geoip_path = st.sidebar.text_input("Path to GeoLite2-City.mmdb file")
-    if geoip_path:
-        try:
-            geoip_reader = geoip2.database.Reader(geoip_path)
-            st.sidebar.success("GeoIP database loaded successfully!")
-        except FileNotFoundError:
-            st.sidebar.error("GeoIP database file not found. Please check the path.")
-            use_geoip = False
-        except Exception as e:
-            st.sidebar.error(f"Error loading GeoIP database: {str(e)}")
-            use_geoip = False
-    else:
-        use_geoip = False
+# Sidebar navigation
+st.sidebar.title("Navigation")
+page = st.sidebar.radio("Go to", ["Recent Searches", "Map View", "Statistics"])
 
 def get_location(ip_address):
-    if use_geoip:
-        try:
-            geo_info = geoip_reader.city(ip_address)
-            return f"{geo_info.city.name}, {geo_info.country.name}"
-        except:
-            return "Unknown"
-    else:
-        return "GeoIP not enabled"
+    # Placeholder function for location lookup
+    # In a real scenario, you might want to implement a proper IP geolocation service
+    return "Location data not available"
 
 def load_data():
     try:
@@ -63,10 +43,6 @@ def load_data():
     df['timestamp'] = pd.to_datetime(df['timestamp'])
     return df
 
-# Sidebar navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.radio("Go to", ["Recent Searches", "Map View", "Statistics"])
-
 # Main content
 st.title("Wall of Sheep 🐑")
 data = load_data()
@@ -88,32 +64,26 @@ if page == "Recent Searches":
         st.info("No search data available. Run some searches from the Data Leak Tool page to populate this table.")
 
 elif page == "Map View":
-    if use_geoip:
-        st.header("User Locations")
-        locations = data[['location']].drop_duplicates()
-        locations[['lat', 'lon']] = locations['location'].apply(lambda x: pd.Series(geoip_reader.city(x.split(', ')[0]).location.latitude, geoip_reader.city(x.split(', ')[0]).location.longitude))
-        st.map(locations)
+    st.header("User Locations")
+    st.info("Map view is currently not available without GeoIP data.")
 
 elif page == "Statistics":
     st.header("Search Statistics")
     
-    # Most searched domains
-    domains = data['url'].apply(lambda x: x.split('//')[1].split('/')[0])
-    domain_counts = domains.value_counts().head(10)
-    st.subheader("Top 10 Searched Domains")
-    st.bar_chart(domain_counts)
-    
-    # Searches per hour
-    data['hour'] = data['timestamp'].dt.hour
-    hourly_searches = data['hour'].value_counts().sort_index()
-    st.subheader("Searches per Hour")
-    st.line_chart(hourly_searches)
-    
-    # Most active locations (only if GeoIP is enabled)
-    if use_geoip:
-        location_counts = data['location'].value_counts().head(10)
-        st.subheader("Top 10 Active Locations")
-        st.bar_chart(location_counts)
+    if not data.empty:
+        # Most searched domains
+        domains = data['url'].apply(lambda x: x.split('//')[1].split('/')[0])
+        domain_counts = domains.value_counts().head(10)
+        st.subheader("Top 10 Searched Domains")
+        st.bar_chart(domain_counts)
+        
+        # Searches per hour
+        data['hour'] = data['timestamp'].dt.hour
+        hourly_searches = data['hour'].value_counts().sort_index()
+        st.subheader("Searches per Hour")
+        st.line_chart(hourly_searches)
+    else:
+        st.info("No search data available for statistics. Run some searches from the Data Leak Tool page first.")
 
 # Footer
 st.sidebar.markdown("---")
