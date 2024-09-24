@@ -16,6 +16,8 @@ import io
 import base64
 import textwrap
 import shutil
+import sqlite3
+from streamlit.web.server.websocket_headers import _get_websocket_headers
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
@@ -41,6 +43,11 @@ if 'analysis_results' not in st.session_state:
     st.session_state.analysis_results = None
 if 'analysis_progress' not in st.session_state:
     st.session_state.analysis_progress = 0
+
+# At the beginning of your app
+if 'user_ip' not in st.session_state:
+    headers = _get_websocket_headers()
+    st.session_state.user_ip = headers.get("X-Forwarded-For", "Unknown")
 
 def is_valid(url):
     parsed = urlparse(url)
@@ -409,6 +416,27 @@ def generate_csv_report(results):
     
     return csv_buffer
 
+def initialize_database():
+    conn = sqlite3.connect('search_history.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS searches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        ip_address TEXT,
+        url TEXT,
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+    conn.commit()
+    conn.close()
+
+def log_search(ip_address, url):
+    conn = sqlite3.connect('search_history.db')
+    cursor = conn.cursor()
+    cursor.execute('INSERT INTO searches (ip_address, url) VALUES (?, ?)', (ip_address, url))
+    conn.commit()
+    conn.close()
+
 # Display user's IP address and warnings
 user_ip = get_user_ip()
 st.sidebar.warning(f"Your IP address: {user_ip}")
@@ -423,6 +451,9 @@ max_depth = st.slider("Maximum crawl depth:", 1, 5, 1)  # Default set to 1
 if st.button("Run Analysis", key="run_analysis_button"):
     if url:
         with st.spinner("Analyzing... This may take a few minutes."):
+            # Log the search
+            log_search(st.session_state.user_ip, url)
+            
             # Perform the analysis
             emails, login_pages, console_pages, security_info, data_leaks = load_data(url, max_depth)
             
