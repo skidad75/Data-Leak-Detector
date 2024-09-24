@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit.web.server.websocket_headers import _get_websocket_headers
 
 st.set_page_config(page_title="Data Leak Detector", page_icon="🕵️", layout="wide")
 
@@ -46,3 +47,8 @@ The developers of this tool are not responsible for any misuse or damage caused 
 st.sidebar.markdown("""
 Developed with ❤️ | [Buy Me a Coffee](https://www.buymeacoffee.com/skidad75)
 """)
+
+# At the beginning of your app
+if 'user_ip' not in st.session_state:
+    headers = _get_websocket_headers()
+    st.session_state.user_ip = headers.get("X-Forwarded-For", "Unknown")
