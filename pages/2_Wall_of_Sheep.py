@@ -23,8 +23,9 @@ def initialize_database():
     ''')
     conn.commit()
     conn.close()
+    st.success("Database initialized successfully")
 
-@st.cache_data
+@st.cache_data(ttl=5)  # Cache for 5 seconds
 def load_search_data():
     initialize_database()
     conn = get_database_connection()
@@ -50,9 +51,15 @@ def get_location(ip_address):
 st.title("Wall of Sheep 🐑")
 data = load_search_data()
 
+st.write("Debug: Data loaded from database")
+st.write(f"Debug: Number of rows in data: {len(data)}")
+
 if data.empty:
     st.info("No search data available. Run some searches from the Data Leak Tool page to populate this table.")
 else:
+    st.success("Search data found!")
+    st.write(data)
+
     data['location'] = data['ip_address'].apply(get_location)
     data['timestamp'] = pd.to_datetime(data['timestamp'])
 
