@@ -56,9 +56,10 @@ def get_location(ip_address):
             latitude, longitude = loc if len(loc) == 2 else (None, None)
             return city, region, country, latitude, longitude
         else:
+            st.warning(f"Failed to fetch location data for IP: {ip_address}. Status code: {response.status_code}")
             return "Unknown", "Unknown", "Unknown", None, None
     except Exception as e:
-        st.error(f"Error fetching location data: {str(e)}")
+        st.error(f"Error fetching location data for IP {ip_address}: {str(e)}")
         return "Unknown", "Unknown", "Unknown", None, None
 
 # Sidebar navigation
@@ -75,7 +76,7 @@ else:
     # Apply get_location to each IP address
     locations = data['ip_address'].apply(get_location)
     data['city'], data['region'], data['country'], data['latitude'], data['longitude'] = zip(*locations)
-    data['location'] = data['city'] + ", " + data['region'] + ", " + data['country']
+    data['location'] = data.apply(lambda row: f"{row['city']}, {row['region']}, {row['country']}", axis=1)
     data['timestamp'] = pd.to_datetime(data['timestamp'])
 
     if page == "Recent Searches":
