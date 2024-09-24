@@ -432,6 +432,7 @@ def initialize_database():
     ''')
     conn.commit()
     conn.close()
+    st.success("Database initialized successfully")
 
 def log_search(ip_address, url):
     conn = get_database_connection()
@@ -439,6 +440,7 @@ def log_search(ip_address, url):
     cursor.execute('INSERT INTO searches (ip_address, url) VALUES (?, ?)', (ip_address, url))
     conn.commit()
     conn.close()
+    st.success(f"Search logged: IP={ip_address}, URL={url}")
 
 # At the beginning of your app
 initialize_database()
