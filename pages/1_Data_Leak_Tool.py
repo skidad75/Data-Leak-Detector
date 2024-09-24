@@ -416,8 +416,11 @@ def generate_csv_report(results):
     
     return csv_buffer
 
+def get_database_connection():
+    return sqlite3.connect('search_history.db', check_same_thread=False)
+
 def initialize_database():
-    conn = sqlite3.connect('search_history.db')
+    conn = get_database_connection()
     cursor = conn.cursor()
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS searches (
@@ -431,13 +434,13 @@ def initialize_database():
     conn.close()
 
 def log_search(ip_address, url):
-    conn = sqlite3.connect('search_history.db')
+    conn = get_database_connection()
     cursor = conn.cursor()
     cursor.execute('INSERT INTO searches (ip_address, url) VALUES (?, ?)', (ip_address, url))
     conn.commit()
     conn.close()
 
-# After imports and before any other code
+# At the beginning of your app
 initialize_database()
 
 # Display user's IP address and warnings
