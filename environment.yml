@@ -8,7 +8,6 @@ dependencies:
   - pandas
   - requests
   - beautifulsoup4
-  - python-whois
   - pyopenssl
   - geoip2
   - sqlite
@@ -17,3 +16,4 @@ dependencies:
     - fpdf
     - python-nmap
     - ipinfo==3.0.0
+    - python-whois
