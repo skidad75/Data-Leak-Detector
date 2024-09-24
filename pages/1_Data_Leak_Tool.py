@@ -161,6 +161,39 @@ def get_page_info(url):
 
 @st.cache_data(show_spinner=False)
 def perform_network_analysis(domain):
+    try:
+        # Ensure the domain has a scheme
+        if not domain.startswith(('http://', 'https://')):
+            domain = f'http://{domain}'
+
+        parsed_url = urlparse(domain)
+        ip_address = perform_dns_lookup(parsed_url.netloc)
+        whois_info = perform_whois_lookup(parsed_url.netloc)
+        
+        common_ports = [80, 443, 22, 21, 25, 53, 3306, 8080, 8443]
+        open_ports = perform_port_scan(ip_address, common_ports)
+        
+        try:
+            headers = requests.get(domain, timeout=5).headers
+            server_info = headers.get('Server', 'Not available')
+        except requests.exceptions.RequestException:
+            server_info = "Unable to retrieve server info"
+        
+        traceroute_data = perform_traceroute(parsed_url.netloc)
+        
+        return {
+            "IP Address": ip_address,
+            "WHOIS Info": whois_info,
+            "Open Ports": open_ports,
+            "Server Info": server_info,
+            "Traceroute": traceroute_data
+        }
+    except Exception as e:
+        return {
+            "Error": f"An error occurred during network analysis: {str(e)}"
+        }
+
+def check_security_headers(url):
     ip_address = perform_dns_lookup(domain)
     whois_info = perform_whois_lookup(domain)
     
