@@ -8,7 +8,7 @@ st.set_page_config(page_title="Wall of Sheep", page_icon="🐑", layout="wide")
 
 # Database functions
 def get_database_connection():
-    return sqlite3.connect('search_history.db', check_same_thread=False)
+    return sqlite3.connect('/mount/src/data-leak-detector/search_history.db', check_same_thread=False)
 
 def initialize_database():
     conn = get_database_connection()
