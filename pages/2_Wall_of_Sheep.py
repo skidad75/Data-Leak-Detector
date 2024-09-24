@@ -47,20 +47,14 @@ def load_data():
         '''
         df = pd.read_sql_query(query, conn)
         conn.close()
-    except (sqlite3.OperationalError, pd.io.sql.DatabaseError):
-        st.warning("The 'searches' table doesn't exist. Displaying sample data instead.")
-        # Generate sample data
-        sample_data = []
-        now = datetime.now()
-        for _ in range(20):
-            ip = f"192.168.{random.randint(1, 255)}.{random.randint(1, 255)}"
-            url = random.choice(["http://example.com", "http://sample.org", "http://test.net"])
-            timestamp = now - timedelta(minutes=random.randint(1, 60))
-            sample_data.append({"ip_address": ip, "url": url, "timestamp": timestamp})
-        df = pd.DataFrame(sample_data)
+        
+        if df.empty:
+            st.warning("No search data available yet.")
+            return pd.DataFrame(columns=["ip_address", "url", "timestamp"])
+        
     except Exception as e:
-        st.error(f"An unexpected error occurred: {str(e)}")
-        df = pd.DataFrame(columns=["ip_address", "url", "timestamp"])
+        st.error(f"An error occurred while loading data: {str(e)}")
+        return pd.DataFrame(columns=["ip_address", "url", "timestamp"])
     
     df['location'] = df['ip_address'].apply(get_location)
     df['timestamp'] = pd.to_datetime(df['timestamp'])
