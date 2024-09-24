@@ -18,6 +18,7 @@ import textwrap
 import shutil
 import sqlite3
 from streamlit.web.server.websocket_headers import _get_websocket_headers
+from datetime import datetime
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
@@ -417,7 +418,7 @@ def generate_csv_report(results):
     return csv_buffer
 
 def get_database_connection():
-    return sqlite3.connect('search_history.db', check_same_thread=False)
+    return sqlite3.connect('/mount/src/data-leak-detector/search_history.db', check_same_thread=False)
 
 def initialize_database():
     conn = get_database_connection()
