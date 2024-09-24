@@ -52,8 +52,11 @@ def load_data():
             st.warning("No search data available yet.")
             return pd.DataFrame(columns=["ip_address", "url", "timestamp"])
         
+    except sqlite3.OperationalError:
+        st.error("Error: The 'searches' table doesn't exist. Please run a search from the Data Leak Tool page first.")
+        return pd.DataFrame(columns=["ip_address", "url", "timestamp"])
     except Exception as e:
-        st.error(f"An error occurred while loading data: {str(e)}")
+        st.error(f"An unexpected error occurred: {str(e)}")
         return pd.DataFrame(columns=["ip_address", "url", "timestamp"])
     
     df['location'] = df['ip_address'].apply(get_location)
@@ -70,16 +73,19 @@ data = load_data()
 
 if page == "Recent Searches":
     st.header("Recent Searches")
-    st.dataframe(
-        data[['ip_address', 'location', 'url', 'timestamp']],
-        column_config={
-            "ip_address": "IP Address",
-            "location": "Location",
-            "url": "URL Searched",
-            "timestamp": st.column_config.DatetimeColumn("Timestamp", format="DD/MM/YYYY, HH:mm:ss"),
-        },
-        hide_index=True,
-    )
+    if not data.empty:
+        st.dataframe(
+            data[['ip_address', 'location', 'url', 'timestamp']],
+            column_config={
+                "ip_address": "IP Address",
+                "location": "Location",
+                "url": "URL Searched",
+                "timestamp": st.column_config.DatetimeColumn("Timestamp", format="DD/MM/YYYY, HH:mm:ss"),
+            },
+            hide_index=True,
+        )
+    else:
+        st.info("No search data available. Run some searches from the Data Leak Tool page to populate this table.")
 
 elif page == "Map View":
     if use_geoip:
