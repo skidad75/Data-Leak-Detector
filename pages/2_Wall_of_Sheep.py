@@ -2,15 +2,12 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 from datetime import datetime
-import ipinfo
-import os
+import json
+import requests
+import re
 
 # Set page config
 st.set_page_config(page_title="Wall of Sheep", page_icon="🐑", layout="wide")
-
-# Initialize ipinfo with your access token
-IPINFO_TOKEN = os.environ.get("IPINFO_TOKEN", "your_default_token_here")
-ipinfo_handler = ipinfo.getHandler(IPINFO_TOKEN)
 
 # Database functions
 def get_database_connection():
@@ -22,6 +19,7 @@ def initialize_database():
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS searches (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
         ip_address TEXT,
         url TEXT,
         timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -47,10 +45,21 @@ def load_search_data():
 @st.cache_data(ttl=3600)  # Cache for 1 hour
 def get_location(ip_address):
     try:
-        details = ipinfo_handler.getDetails(ip_address)
-        return details.city, details.country, details.latitude, details.longitude
-    except:
-        return "Unknown", "Unknown", None, None
+        url = f'http://ipinfo.io/{ip_address}/json'
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            city = data.get('city', 'Unknown')
+            region = data.get('region', 'Unknown')
+            country = data.get('country', 'Unknown')
+            loc = data.get('loc', '').split(',')
+            latitude, longitude = loc if len(loc) == 2 else (None, None)
+            return city, region, country, latitude, longitude
+        else:
+            return "Unknown", "Unknown", "Unknown", None, None
+    except Exception as e:
+        st.error(f"Error fetching location data: {str(e)}")
+        return "Unknown", "Unknown", "Unknown", None, None
 
 # Sidebar navigation
 st.sidebar.title("Navigation")
@@ -65,8 +74,8 @@ if data.empty:
 else:
     # Apply get_location to each IP address
     locations = data['ip_address'].apply(get_location)
-    data['city'], data['country'], data['latitude'], data['longitude'] = zip(*locations)
-    data['location'] = data['city'] + ", " + data['country']
+    data['city'], data['region'], data['country'], data['latitude'], data['longitude'] = zip(*locations)
+    data['location'] = data['city'] + ", " + data['region'] + ", " + data['country']
     data['timestamp'] = pd.to_datetime(data['timestamp'])
 
     if page == "Recent Searches":
@@ -95,7 +104,7 @@ else:
         st.header("Search Statistics")
         
         # Most searched domains
-        domains = data['url'].apply(lambda x: x.split('//')[1].split('/')[0])
+        domains = data['url'].apply(lambda x: re.findall(r"(?:https?://)?(?:www\.)?([^/]+)", x)[0] if re.findall(r"(?:https?://)?(?:www\.)?([^/]+)", x) else x)
         domain_counts = domains.value_counts().head(10)
         st.subheader("Top 10 Searched Domains")
         st.bar_chart(domain_counts)
