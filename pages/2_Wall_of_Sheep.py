@@ -72,7 +72,6 @@ page = st.sidebar.radio("Go to", ["Recent Searches", "Map View", "Statistics"])
 
 # Main content
 st.title("Wall of Sheep 🐑")
-# Home link removed
 data = load_data()
 
 if page == "Recent Searches":
@@ -118,7 +117,3 @@ elif page == "Statistics":
 
 # Footer
 st.sidebar.markdown("---")
-st.sidebar.info("This is a demo application. Data shown is for illustrative purposes only.")
-
-# The following line has been removed:
-# st.sidebar.page_link("Data_Leak_Detector", label="Home 🏠")
