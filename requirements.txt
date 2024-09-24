@@ -2,8 +2,8 @@ streamlit
 pandas
 requests
 beautifulsoup4
-python-whois
 pyOpenSSL
 geoip2
+python-whois
 fpdf
 python-nmap
