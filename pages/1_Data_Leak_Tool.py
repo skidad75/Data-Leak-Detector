@@ -15,6 +15,7 @@ import OpenSSL
 import io
 import base64
 import textwrap
+import shutil
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
@@ -83,6 +84,9 @@ def perform_port_scan(ip, ports):
     return open_ports
 
 def perform_traceroute(domain):
+    if shutil.which('traceroute') is None:
+        return pd.DataFrame({'Error': ['Traceroute command not available on this system']})
+    
     route_data = []
     try:
         result = subprocess.run(['traceroute', '-m', '30', domain], capture_output=True, text=True, timeout=10)
@@ -95,11 +99,11 @@ def perform_traceroute(domain):
                 hostname = parts[1] if parts[1] != '*' else 'N/A'
                 route_data.append({"Hop": hop, "IP": ip, "Hostname": hostname})
     except subprocess.TimeoutExpired:
-        st.warning("Traceroute timed out, partial results may be available")
+        return pd.DataFrame({'Error': ['Traceroute timed out, partial results may be available']})
     except Exception as e:
-        st.error(f"Traceroute error: {str(e)}")
+        return pd.DataFrame({'Error': [f'Traceroute error: {str(e)}']})
     
-    return pd.DataFrame(route_data) if route_data else None
+    return pd.DataFrame(route_data) if route_data else pd.DataFrame({'Error': ['No traceroute data available']})
 
 def is_potential_login_page(soup, url):
     login_keywords = ['login', 'sign in', 'signin', 'log in', 'username', 'password', 'portal', 'webportal', 'web portal', 'account']
@@ -186,32 +190,12 @@ def perform_network_analysis(domain):
             "WHOIS Info": whois_info,
             "Open Ports": open_ports,
             "Server Info": server_info,
-            "Traceroute": traceroute_data
+            "Traceroute": traceroute_data.to_dict(orient='records')
         }
     except Exception as e:
         return {
             "Error": f"An error occurred during network analysis: {str(e)}"
         }
-
-def check_security_headers(url):
-    ip_address = perform_dns_lookup(domain)
-    whois_info = perform_whois_lookup(domain)
-    
-    common_ports = [80, 443, 22, 21, 25, 53, 3306, 8080, 8443]
-    open_ports = perform_port_scan(ip_address, common_ports)
-    
-    headers = requests.get(f"http://{domain}", timeout=5).headers
-    server_info = headers.get('Server', 'Not available')
-    
-    traceroute_data = perform_traceroute(domain)
-    
-    return {
-        "IP Address": ip_address,
-        "WHOIS Info": whois_info,
-        "Open Ports": open_ports,
-        "Server Info": server_info,
-        "Traceroute": traceroute_data
-    }
 
 def check_security_headers(url):
     try:
@@ -399,6 +383,8 @@ def generate_csv_report(results):
     def safe_join(data):
         if isinstance(data, list):
             return ', '.join(str(item) for item in data)
+        elif isinstance(data, dict):
+            return ', '.join(f"{k}: {v}" for k, v in data.items())
         else:
             return str(data)
 
@@ -408,9 +394,9 @@ def generate_csv_report(results):
         'Emails Found': [safe_join(results.get('emails', []))],
         'Potential Login Pages': [safe_join(results.get('login_pages', []))],
         'Potential Console Pages': [safe_join(results.get('console_pages', []))],
-        'Security Information': [str(results.get('security_info', {}))],
-        'Potential Data Leaks': [str(results.get('data_leaks', {}))],
-        'Network Information': [str(results.get('network_info', {}))]
+        'Security Information': [safe_join(results.get('security_info', {}))],
+        'Potential Data Leaks': [safe_join(results.get('data_leaks', {}))],
+        'Network Information': [safe_join(results.get('network_info', {}))]
     }
 
     # Create a DataFrame
