@@ -5,6 +5,8 @@ from datetime import datetime
 import requests
 import re
 import ipaddress
+import pydeck as pdk
+import numpy as np
 
 # Set page config
 st.set_page_config(page_title="Wall of Sheep", page_icon="🐑", layout="wide")
@@ -135,7 +137,14 @@ else:
 
             elif page == "Map View":
                 st.header("User Locations")
-                map_data = data[data['latitude'].notnull() & data['longitude'].notnull()]
+                # Convert latitude and longitude to numeric, replacing non-numeric values with NaN
+                map_data = data.copy()
+                map_data['latitude'] = pd.to_numeric(map_data['latitude'], errors='coerce')
+                map_data['longitude'] = pd.to_numeric(map_data['longitude'], errors='coerce')
+                
+                # Filter out rows with NaN values
+                map_data = map_data.dropna(subset=['latitude', 'longitude'])
+                
                 if not map_data.empty:
                     # Create a map centered on the mean of all points
                     center_lat = map_data['latitude'].mean()
