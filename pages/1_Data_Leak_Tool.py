@@ -3,8 +3,7 @@ import sqlite3
 from datetime import datetime
 import requests
 from streamlit.web.server.websocket_headers import _get_websocket_headers
-import folium
-from streamlit_folium import st_folium
+import pydeck as pdk
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
@@ -73,10 +72,34 @@ user_lat, user_lon = get_location(st.session_state.user_ip)
 
 # Create map
 if user_lat and user_lon:
-    m = st_folium.Map(location=[user_lat, user_lon], zoom_start=10, tiles="https://tiles.openfreemap.org/styles/liberty/{z}/{x}/{y}.png", attr="OpenFreeMap")
-    m.add_marker(location=[user_lat, user_lon], popup="Your Location")
     st.subheader("Your Location")
-    st_folium.st_folium(m, width=700, height=500)
+    
+    # Define the initial view state
+    view_state = pdk.ViewState(
+        latitude=user_lat,
+        longitude=user_lon,
+        zoom=11,
+        pitch=0
+    )
+
+    # Define the layer to add to the map
+    layer = pdk.Layer(
+        "ScatterplotLayer",
+        data=[{"position": [user_lon, user_lat]}],
+        get_position="position",
+        get_color=[255, 0, 0, 200],
+        get_radius=1000,
+    )
+
+    # Create the map
+    r = pdk.Deck(
+        map_style="mapbox://styles/mapbox/light-v9",
+        initial_view_state=view_state,
+        layers=[layer]
+    )
+
+    # Display the map
+    st.pydeck_chart(r)
 else:
     st.warning("Unable to determine your location.")
 
