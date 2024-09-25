@@ -7,6 +7,5 @@ pyOpenSSL
 geoip2
 fpdf
 python-nmap
-folium
 streamlit-folium
 ipinfo==3.0.0
