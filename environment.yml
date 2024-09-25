@@ -15,6 +15,7 @@ dependencies:
   - ipinfo=3.0.0
   - safety
   - pydeck
+  - IPy  # Add this line
   - pip
   - pip:
     - streamlit-option-menu
