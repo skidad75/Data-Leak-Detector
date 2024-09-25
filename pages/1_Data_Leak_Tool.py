@@ -3,8 +3,8 @@ import sqlite3
 from datetime import datetime
 import requests
 from streamlit.web.server.websocket_headers import _get_websocket_headers
+import folium
 from streamlit_folium import st_folium
-import streamlit_folium as st_folium
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
