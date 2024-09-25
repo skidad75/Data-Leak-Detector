@@ -137,7 +137,39 @@ else:
                 st.header("User Locations")
                 map_data = data[data['latitude'].notnull() & data['longitude'].notnull()]
                 if not map_data.empty:
-                    st.map(map_data[['latitude', 'longitude']])
+                    # Create a map centered on the mean of all points
+                    center_lat = map_data['latitude'].mean()
+                    center_lon = map_data['longitude'].mean()
+
+                    view_state = pdk.ViewState(
+                        latitude=center_lat,
+                        longitude=center_lon,
+                        zoom=3,
+                        pitch=0
+                    )
+
+                    layer = pdk.Layer(
+                        "ScatterplotLayer",
+                        data=map_data,
+                        get_position=['longitude', 'latitude'],
+                        get_color=[255, 0, 0, 200],
+                        get_radius=50000,
+                        pickable=True
+                    )
+
+                    tooltip = {
+                        "html": "<b>IP:</b> {ip_address}<br><b>Location:</b> {location}<br><b>URL:</b> {url}",
+                        "style": {"background": "grey", "color": "white", "font-family": '"Helvetica Neue", Arial', "z-index": "10000"},
+                    }
+
+                    r = pdk.Deck(
+                        map_style="mapbox://styles/mapbox/light-v9",
+                        initial_view_state=view_state,
+                        layers=[layer],
+                        tooltip=tooltip
+                    )
+
+                    st.pydeck_chart(r)
                 else:
                     st.info("No valid location data available for mapping.")
 
