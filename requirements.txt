@@ -8,3 +8,6 @@ geoip2
 fpdf
 python-nmap
 ipinfo==3.0.0
+ipaddress
+pydeck
+streamlit-option-menu
