@@ -9,7 +9,7 @@ import subprocess
 import time
 import socket
 import ssl
-import OpenSSL
+# import OpenSSL  # Comment out this line
 import io
 import base64
 import textwrap
@@ -233,6 +233,15 @@ def check_security_headers(url):
     except Exception as e:
         return f"Error checking security headers: {str(e)}"
 
+# Add this function to check if OpenSSL is available
+def is_openssl_available():
+    try:
+        import OpenSSL
+        return True
+    except ImportError:
+        return False
+
+# Modify the check_ssl_cert function
 def check_ssl_cert(url):
     try:
         hostname = urlparse(url).netloc
@@ -241,17 +250,30 @@ def check_ssl_cert(url):
             s.connect((hostname, 443))
             cert = s.getpeercert()
         
-        x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, s.getpeercert(binary_form=True))
-        cert_info = {
-            'Subject': dict(x509.get_subject().get_components()),
-            'Issuer': dict(x509.get_issuer().get_components()),
-            'Version': x509.get_version(),
-            'Serial Number': x509.get_serial_number(),
-            'Not Before': x509.get_notBefore().decode(),
-            'Not After': x509.get_notAfter().decode(),
-            'OCSP': cert.get('OCSP', 'Not available'),
-            'Subject Alt Names': cert.get('subjectAltName', 'Not available')
-        }
+        if is_openssl_available():
+            import OpenSSL
+            x509 = OpenSSL.crypto.load_certificate(OpenSSL.crypto.FILETYPE_ASN1, s.getpeercert(binary_form=True))
+            cert_info = {
+                'Subject': dict(x509.get_subject().get_components()),
+                'Issuer': dict(x509.get_issuer().get_components()),
+                'Version': x509.get_version(),
+                'Serial Number': x509.get_serial_number(),
+                'Not Before': x509.get_notBefore().decode(),
+                'Not After': x509.get_notAfter().decode(),
+                'OCSP': cert.get('OCSP', 'Not available'),
+                'Subject Alt Names': cert.get('subjectAltName', 'Not available')
+            }
+        else:
+            cert_info = {
+                'Subject': cert['subject'],
+                'Issuer': cert['issuer'],
+                'Version': cert['version'],
+                'Serial Number': cert['serialNumber'],
+                'Not Before': cert['notBefore'],
+                'Not After': cert['notAfter'],
+                'OCSP': cert.get('OCSP', 'Not available'),
+                'Subject Alt Names': cert.get('subjectAltName', 'Not available')
+            }
         return cert_info
     except Exception as e:
         return f"Error checking SSL certificate: {str(e)}"
