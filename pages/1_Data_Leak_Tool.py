@@ -8,7 +8,6 @@ from urllib.parse import urljoin, urlparse
 import subprocess
 import time
 import socket
-import whois
 from bs4 import BeautifulSoup
 import ssl
 import OpenSSL
@@ -69,17 +68,30 @@ def perform_dns_lookup(domain):
     except socket.gaierror:
         return "DNS lookup failed"
 
-def perform_whois_lookup(domain):
+# Add this function to check if whois is available
+def is_whois_available():
     try:
-        w = whois.whois(domain)
-        return {
-            "Registrar": w.registrar,
-            "Creation Date": str(w.creation_date),
-            "Expiration Date": str(w.expiration_date),
-            "Name Servers": w.name_servers
-        }
-    except Exception as e:
-        return f"WHOIS lookup failed: {str(e)}"
+        import whois
+        return True
+    except ImportError:
+        return False
+
+# Modify the perform_whois_lookup function
+def perform_whois_lookup(domain):
+    if is_whois_available():
+        try:
+            import whois
+            w = whois.whois(domain)
+            return {
+                "Registrar": w.registrar,
+                "Creation Date": str(w.creation_date),
+                "Expiration Date": str(w.expiration_date),
+                "Name Servers": w.name_servers
+            }
+        except Exception as e:
+            return f"WHOIS lookup failed: {str(e)}"
+    else:
+        return "WHOIS lookup not available. Please install the 'python-whois' package."
 
 def perform_port_scan(ip, ports):
     open_ports = []
