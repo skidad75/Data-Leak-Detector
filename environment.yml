@@ -11,9 +11,11 @@ dependencies:
   - python-whois
   - pyopenssl
   - geoip2
-  - sqlite
+  - fpdf
+  - python-nmap
+  - ipinfo=3.0.0
+  - ipaddress
+  - pydeck
   - pip
   - pip:
-    - fpdf
-    - python-nmap
-    - ipinfo==3.0.0
+    - streamlit-option-menu
