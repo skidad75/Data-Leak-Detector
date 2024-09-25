@@ -50,7 +50,7 @@ def get_public_ip():
     except:
         return "Unknown"
 
-# At the beginning of your app
+# Initialize session state for user IP if it doesn't exist
 if 'user_ip' not in st.session_state:
     st.session_state.user_ip = get_public_ip()
 
@@ -532,22 +532,6 @@ def log_search(url):
     conn.commit()
     conn.close()
 
-def get_location(ip_address):
-    try:
-        url = f'http://ipinfo.io/{ip_address}/json'
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            loc = data.get('loc', '').split(',')
-            latitude, longitude = loc if len(loc) == 2 else (None, None)
-            return float(latitude), float(longitude)
-        else:
-            st.warning(f"Failed to fetch location data for IP: {ip_address}. Status code: {response.status_code}")
-            return None, None
-    except Exception as e:
-        st.error(f"Error fetching location data for IP {ip_address}: {str(e)}")
-        return None, None
-
 # Initialize database
 initialize_database()
 
@@ -598,7 +582,7 @@ url = st.text_input("Enter a URL to scan:")
 max_depth = st.slider("Maximum crawl depth:", 1, 5, 1)  # Default set to 1
 
 # Run button
-if st.button("Run Analysis", key="run_analysis_button"):
+if st.button("Run Analysis"):
     if url:
         with st.spinner("Analyzing... This may take a few minutes."):
             # Log the search
@@ -655,7 +639,7 @@ if st.button("Run Analysis", key="run_analysis_button"):
 
 # CSV generation button
 if st.session_state.analysis_run and st.session_state.analysis_progress >= 0.8:
-    if st.button("Generate CSV Report", key="generate_csv_button"):
+    if st.button("Generate CSV Report"):
         try:
             results = st.session_state.analysis_results
             csv_buffer = generate_csv_report(results)
