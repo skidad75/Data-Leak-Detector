@@ -9,7 +9,6 @@ import subprocess
 import time
 import socket
 import ssl
-# import OpenSSL  # Comment out this line
 import io
 import base64
 import textwrap
@@ -54,6 +53,8 @@ def is_valid(url):
     return bool(parsed.netloc) and bool(parsed.scheme)
 
 def get_all_links(url, soup):
+    if not is_beautifulsoup_available():
+        return []  # We can't extract links without BeautifulSoup
     return [urljoin(url, link.get('href')) for link in soup.find_all('a') if link.get('href')]
 
 def extract_emails(text):
@@ -126,6 +127,8 @@ def perform_traceroute(domain):
     return pd.DataFrame(route_data) if route_data else pd.DataFrame({'Error': ['No traceroute data available']})
 
 def is_potential_login_page(soup, url):
+    if not is_beautifulsoup_available():
+        return False  # We can't check without BeautifulSoup
     login_keywords = ['login', 'sign in', 'signin', 'log in', 'username', 'password', 'portal', 'webportal', 'web portal', 'account']
     page_text = soup.get_text().lower()
     
@@ -155,6 +158,8 @@ def is_potential_login_page(soup, url):
     return False
 
 def is_potential_console_login(soup, url):
+    if not is_beautifulsoup_available():
+        return False  # We can't check without BeautifulSoup
     console_keywords = ['console', 'admin', 'dashboard', 'management', 'control panel']
     page_text = soup.get_text().lower()
     
@@ -423,17 +428,26 @@ def load_data(url, max_depth):
 def process_url(url, depth, base_domain, max_depth):
     try:
         response = requests.get(url, timeout=10)
-        soup = BeautifulSoup(response.text, 'html.parser')
         
-        page_emails = extract_emails(soup.get_text())
-        login_pages = [url] if is_potential_login_page(soup, url) else []
-        console_pages = [url] if is_potential_console_login(soup, url) else []
-        page_leaks = detect_data_leaks(soup.get_text())
+        if is_beautifulsoup_available():
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(response.text, 'html.parser')
+            page_text = soup.get_text()
+            page_emails = extract_emails(url, response.text)
+            login_pages = [url] if is_potential_login_page(soup, url) else []
+            console_pages = [url] if is_potential_console_login(soup, url) else []
+            new_links = get_all_links(url, soup) if depth < max_depth else []
+        else:
+            page_text = response.text
+            page_emails = extract_emails(url, response.text)
+            login_pages = []  # We can't check for login pages without BeautifulSoup
+            console_pages = []  # We can't check for console pages without BeautifulSoup
+            new_links = []  # We can't get new links without BeautifulSoup
         
-        new_links = []
+        page_leaks = detect_data_leaks(page_text)
+        
         if depth < max_depth:
-            links = get_all_links(url, soup)
-            new_links = [(link, depth + 1) for link in links if is_valid(link) and urlparse(link).netloc == base_domain]
+            new_links = [(link, depth + 1) for link in new_links if is_valid(link) and urlparse(link).netloc == base_domain]
         
         return {
             'emails': page_emails,
