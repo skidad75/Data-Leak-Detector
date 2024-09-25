@@ -543,7 +543,7 @@ st.sidebar.warning("⚠️ This tool is for educational purposes only.")
 st.sidebar.warning("⚠️ Do not use on systems you don't own or have explicit permission to test.")
 
 # Get user's location
-user_lat, user_lon = get_location(st.session_state.user_ip)
+# user_lat, user_lon = get_location(st.session_state.user_ip)
 
 # User input
 url = st.text_input("Enter a URL to scan:")
