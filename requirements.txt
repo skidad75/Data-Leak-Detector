@@ -12,3 +12,4 @@ ipaddress
 pydeck
 streamlit-option-menu
 safety
+IPy
