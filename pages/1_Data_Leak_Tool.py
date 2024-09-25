@@ -3,8 +3,8 @@ import sqlite3
 from datetime import datetime
 import requests
 from streamlit.web.server.websocket_headers import _get_websocket_headers
-import folium
-from streamlit_folium import folium_static
+from streamlit_folium import st_folium
+import streamlit_folium as st_folium
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
@@ -73,10 +73,10 @@ user_lat, user_lon = get_location(st.session_state.user_ip)
 
 # Create map
 if user_lat and user_lon:
-    m = folium.Map(location=[user_lat, user_lon], zoom_start=10, tiles="https://tiles.openfreemap.org/styles/liberty/{z}/{x}/{y}.png", attr="OpenFreeMap")
-    folium.Marker([user_lat, user_lon], popup="Your Location").add_to(m)
+    m = st_folium.Map(location=[user_lat, user_lon], zoom_start=10, tiles="https://tiles.openfreemap.org/styles/liberty/{z}/{x}/{y}.png", attr="OpenFreeMap")
+    m.add_marker(location=[user_lat, user_lon], popup="Your Location")
     st.subheader("Your Location")
-    folium_static(m)
+    st_folium.st_folium(m, width=700, height=500)
 else:
     st.warning("Unable to determine your location.")
 
@@ -97,8 +97,6 @@ if st.button("Run Analysis"):
             # ... Display your analysis results here ...
     else:
         st.error("Please enter a URL to scan.")
-
-# Add any additional features or information you want to display
 
 # Footer
 st.sidebar.markdown("---")
