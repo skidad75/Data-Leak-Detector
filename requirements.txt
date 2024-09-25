@@ -8,3 +8,5 @@ fpdf
 python-nmap
 ipinfo==3.0.0
 python-whois
+streamlit-folium
+folium
