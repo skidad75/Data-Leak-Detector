@@ -18,11 +18,8 @@ import textwrap
 import shutil
 import sqlite3
 from streamlit.web.server.websocket_headers import _get_websocket_headers
-<<<<<<< HEAD
 import pydeck as pdk
-=======
 from datetime import datetime
->>>>>>> parent of e26f513 (Update 1_Data_Leak_Tool.py)
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
@@ -447,7 +444,6 @@ def log_search(ip_address, url):
     conn.close()
     st.success(f"Search logged: IP={ip_address}, URL={url}")
 
-<<<<<<< HEAD
 def get_location(ip_address):
     try:
         url = f'http://ipinfo.io/{ip_address}/json'
@@ -465,9 +461,6 @@ def get_location(ip_address):
         return None, None
 
 # Initialize database
-=======
-# At the beginning of your app
->>>>>>> parent of e26f513 (Update 1_Data_Leak_Tool.py)
 initialize_database()
 
 # Display user's IP address and warnings
@@ -519,19 +512,6 @@ max_depth = st.slider("Maximum crawl depth:", 1, 5, 1)  # Default set to 1
 # Run button
 if st.button("Run Analysis", key="run_analysis_button"):
     if url:
-<<<<<<< HEAD
-        user_ip = st.session_state.get('user_ip', 'Unknown')
-        log_search(user_ip, url)
-        st.write(f"Analysis run for URL: {url}")
-        st.write(f"User IP: {user_ip}")
-        # ... rest of your analysis code here ...
-    else:
-        st.error("Please enter a URL to scan.")
-
-# Footer
-st.sidebar.markdown("---")
-st.sidebar.text("© 2023 Data Leak Detector")
-=======
         with st.spinner("Analyzing... This may take a few minutes."):
             # Log the search
             log_search(st.session_state.user_ip, url)
@@ -599,4 +579,7 @@ if st.session_state.analysis_run and st.session_state.analysis_progress >= 0.8:
             st.error(f"Results structure: {str(results)}")  # Add this line for debugging
 else:
     st.info("CSV report generation will be available when the analysis is at least 80% complete.")
->>>>>>> parent of e26f513 (Update 1_Data_Leak_Tool.py)
+
+# Footer
+st.sidebar.markdown("---")
+st.sidebar.text("© 2023 Data Leak Detector")
