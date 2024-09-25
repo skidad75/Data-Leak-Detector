@@ -109,15 +109,11 @@ max_depth = st.slider("Maximum crawl depth:", 1, 5, 1)  # Default set to 1
 
 if st.button("Run Analysis"):
     if url:
-        with st.spinner("Analyzing... This may take a few minutes."):
-            # Log the search
-            log_search(st.session_state.user_ip, url)
-            
-            # Perform the analysis
-            # ... Your existing analysis code here ...
-            
-            st.success(f"Analysis completed for URL: {url}")
-            # ... Display your analysis results here ...
+        user_ip = st.session_state.get('user_ip', 'Unknown')
+        log_search(user_ip, url)
+        st.write(f"Analysis run for URL: {url}")
+        st.write(f"User IP: {user_ip}")
+        # ... rest of your analysis code here ...
     else:
         st.error("Please enter a URL to scan.")
 
