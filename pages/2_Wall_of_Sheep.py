@@ -70,6 +70,9 @@ def is_public_ip(ip_address):
         return False
 
 def get_location(ip_address):
+    if not is_public_ip(ip_address):
+        return None, None, None, None, None
+    
     try:
         url = f'http://ipinfo.io/{ip_address}/json'
         response = requests.get(url)
@@ -83,10 +86,10 @@ def get_location(ip_address):
             return city, region, country, latitude, longitude
         else:
             st.warning(f"Failed to fetch location data for IP: {ip_address}. Status code: {response.status_code}")
-            return "Unknown", "Unknown", "Unknown", None, None
+            return None, None, None, None, None
     except Exception as e:
         st.error(f"Error fetching location data for IP {ip_address}: {str(e)}")
-        return "Unknown", "Unknown", "Unknown", None, None
+        return None, None, None, None, None
 
 # Sidebar navigation
 st.sidebar.title("Navigation")
@@ -108,50 +111,56 @@ else:
         # Apply get_location to each public IP address
         locations = data['ip_address'].apply(get_location)
         data['city'], data['region'], data['country'], data['latitude'], data['longitude'] = zip(*locations)
-        data['location'] = data.apply(lambda row: f"{row['city']}, {row['region']}, {row['country']}", axis=1)
+        data['location'] = data.apply(lambda row: f"{row['city']}, {row['region']}, {row['country']}" if row['city'] else "Unknown", axis=1)
         data['timestamp'] = pd.to_datetime(data['timestamp'])
 
-        if page == "Recent Searches":
-            st.header("Recent Searches")
-            st.dataframe(
-                data[['ip_address', 'location', 'url', 'timestamp']],
-                column_config={
-                    "ip_address": "IP Address",
-                    "location": "Location",
-                    "url": "URL Searched",
-                    "timestamp": st.column_config.DatetimeColumn("Timestamp", format="DD/MM/YYYY, HH:mm:ss"),
-                },
-                hide_index=True,
-            )
+        # Filter out rows with unknown locations
+        data = data[data['location'] != "Unknown, Unknown, Unknown"]
 
-        elif page == "Map View":
-            st.header("User Locations")
-            # Filter out rows with missing lat/long
-            map_data = data[data['latitude'].notnull() & data['longitude'].notnull()]
-            if not map_data.empty:
-                st.map(map_data[['latitude', 'longitude']])
-            else:
-                st.info("No valid location data available for mapping.")
+        if data.empty:
+            st.info("No location data available for public IP addresses.")
+        else:
+            # Display the data based on the selected page
+            if page == "Recent Searches":
+                st.header("Recent Searches")
+                st.dataframe(
+                    data[['ip_address', 'location', 'url', 'timestamp']],
+                    column_config={
+                        "ip_address": "IP Address",
+                        "location": "Location",
+                        "url": "URL Searched",
+                        "timestamp": st.column_config.DatetimeColumn("Timestamp", format="DD/MM/YYYY, HH:mm:ss"),
+                    },
+                    hide_index=True,
+                )
 
-        elif page == "Statistics":
-            st.header("Search Statistics")
-            
-            # Most searched domains
-            domains = data['url'].apply(lambda x: re.findall(r"(?:https?://)?(?:www\.)?([^/]+)", x)[0] if re.findall(r"(?:https?://)?(?:www\.)?([^/]+)", x) else x)
-            domain_counts = domains.value_counts().head(10)
-            st.subheader("Top 10 Searched Domains")
-            st.bar_chart(domain_counts)
-            
-            # Searches per hour
-            data['hour'] = data['timestamp'].dt.hour
-            hourly_searches = data['hour'].value_counts().sort_index()
-            st.subheader("Searches per Hour")
-            st.line_chart(hourly_searches)
-            
-            # Top countries
-            country_counts = data['country'].value_counts().head(10)
-            st.subheader("Top 10 Countries")
-            st.bar_chart(country_counts)
+            elif page == "Map View":
+                st.header("User Locations")
+                map_data = data[data['latitude'].notnull() & data['longitude'].notnull()]
+                if not map_data.empty:
+                    st.map(map_data[['latitude', 'longitude']])
+                else:
+                    st.info("No valid location data available for mapping.")
+
+            elif page == "Statistics":
+                st.header("Search Statistics")
+                
+                # Most searched domains
+                domains = data['url'].apply(lambda x: re.findall(r"(?:https?://)?(?:www\.)?([^/]+)", x)[0] if re.findall(r"(?:https?://)?(?:www\.)?([^/]+)", x) else x)
+                domain_counts = domains.value_counts().head(10)
+                st.subheader("Top 10 Searched Domains")
+                st.bar_chart(domain_counts)
+                
+                # Searches per hour
+                data['hour'] = data['timestamp'].dt.hour
+                hourly_searches = data['hour'].value_counts().sort_index()
+                st.subheader("Searches per Hour")
+                st.line_chart(hourly_searches)
+                
+                # Top countries
+                country_counts = data['country'].value_counts().head(10)
+                st.subheader("Top 10 Countries")
+                st.bar_chart(country_counts)
 
 # Footer
 st.sidebar.markdown("---")
