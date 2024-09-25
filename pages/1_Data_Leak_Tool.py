@@ -570,7 +570,7 @@ st.sidebar.warning("⚠️ Do not use on systems you don't own or have explicit 
 # Get user's location
 user_lat, user_lon = get_location(st.session_state.user_ip)
 
-# Create map
+# Create map if location is available
 if user_lat and user_lon:
     st.subheader("Your Location")
     
