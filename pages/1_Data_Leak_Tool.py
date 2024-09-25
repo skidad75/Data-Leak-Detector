@@ -19,6 +19,13 @@ import pydeck as pdk
 from datetime import datetime
 import ipaddress
 
+def get_public_ip():
+    try:
+        response = requests.get('https://api.ipify.org', timeout=5)
+        return response.text
+    except:
+        return "Unable to retrieve IP"
+
 # Initialize session state variables
 if 'analysis_run' not in st.session_state:
     st.session_state.analysis_run = False
@@ -32,16 +39,6 @@ st.set_page_config(page_title="Data Leak Tool", page_icon="🕵️", layout="wid
 
 # Sidebar
 st.sidebar.title("Data Leak Detector")
-
-def get_public_ip():
-    try:
-        response = requests.get('https://api.ipify.org')
-        return response.text
-    except:
-        return "Unknown"
-
-# In the sidebar
-st.sidebar.warning(f"Your IP address: {st.session_state.user_ip}")
 
 def is_valid(url):
     parsed = urlparse(url)
