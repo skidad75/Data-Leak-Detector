@@ -19,30 +19,11 @@ import pydeck as pdk
 from datetime import datetime
 import ipaddress
 
-# Set page config as the first Streamlit command
-st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
+# Set page config
+st.set_page_config(page_title="Data Leak Tool", page_icon="🕵️", layout="wide")
 
-# Add this line to set the page title in the sidebar
-st.sidebar.header("Data Leak Tool")
-
-# Hide the default page title in the main area
-st.markdown("""
-    <style>
-    #data-leak-tool {
-        display: none;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-st.title("Data Leak Tool")
-
-# Add these variables at the top of your script, after the imports
-if 'analysis_run' not in st.session_state:
-    st.session_state.analysis_run = False
-if 'analysis_results' not in st.session_state:
-    st.session_state.analysis_results = None
-if 'analysis_progress' not in st.session_state:
-    st.session_state.analysis_progress = 0
+# Sidebar
+st.sidebar.title("Data Leak Detector")
 
 def get_public_ip():
     try:
