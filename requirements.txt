@@ -2,11 +2,11 @@ streamlit
 pandas
 requests
 beautifulsoup4
+python-whois
 pyOpenSSL
 geoip2
 fpdf
 python-nmap
-ipinfo==3.0.0
-python-whois
-streamlit-folium
 folium
+streamlit-folium
+ipinfo==3.0.0
