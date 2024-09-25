@@ -51,31 +51,6 @@ def get_public_ip():
     except:
         return "Unknown"
 
-def is_public_ip(ip_address):
-    try:
-        return not ipaddress.ip_address(ip_address).is_private
-    except ValueError:
-        return False
-
-def get_location(ip_address):
-    if not is_public_ip(ip_address):
-        return None, None
-    
-    try:
-        url = f'http://ipinfo.io/{ip_address}/json'
-        response = requests.get(url)
-        if response.status_code == 200:
-            data = response.json()
-            loc = data.get('loc', '').split(',')
-            latitude, longitude = loc if len(loc) == 2 else (None, None)
-            return latitude, longitude
-        else:
-            st.warning(f"Failed to fetch location data for IP: {ip_address}. Status code: {response.status_code}")
-            return None, None
-    except Exception as e:
-        st.error(f"Error fetching location data for IP {ip_address}: {str(e)}")
-        return None, None
-
 # Initialize session state for user IP if it doesn't exist
 if 'user_ip' not in st.session_state:
     st.session_state.user_ip = get_public_ip()
@@ -569,39 +544,6 @@ st.sidebar.warning("⚠️ Do not use on systems you don't own or have explicit 
 
 # Get user's location
 user_lat, user_lon = get_location(st.session_state.user_ip)
-
-# Create map if location is available
-if user_lat and user_lon:
-    st.subheader("Your Location")
-    
-    # Define the initial view state
-    view_state = pdk.ViewState(
-        latitude=float(user_lat),
-        longitude=float(user_lon),
-        zoom=11,
-        pitch=0
-    )
-
-    # Define the layer to add to the map
-    layer = pdk.Layer(
-        "ScatterplotLayer",
-        data=[{"position": [float(user_lon), float(user_lat)]}],
-        get_position="position",
-        get_color=[255, 0, 0, 200],
-        get_radius=1000,
-    )
-
-    # Create the map
-    r = pdk.Deck(
-        map_style="mapbox://styles/mapbox/light-v9",
-        initial_view_state=view_state,
-        layers=[layer]
-    )
-
-    # Display the map
-    st.pydeck_chart(r)
-else:
-    st.warning("Unable to determine your location.")
 
 # User input
 url = st.text_input("Enter a URL to scan:")
