@@ -17,6 +17,7 @@ import sqlite3
 from streamlit.web.server.websocket_headers import _get_websocket_headers
 import pydeck as pdk
 from datetime import datetime
+import ipaddress
 
 # Set page config as the first Streamlit command
 st.set_page_config(layout="wide", page_title="Data Leak Tool", page_icon="🔧")
@@ -49,6 +50,31 @@ def get_public_ip():
         return response.text
     except:
         return "Unknown"
+
+def is_public_ip(ip_address):
+    try:
+        return not ipaddress.ip_address(ip_address).is_private
+    except ValueError:
+        return False
+
+def get_location(ip_address):
+    if not is_public_ip(ip_address):
+        return None, None
+    
+    try:
+        url = f'http://ipinfo.io/{ip_address}/json'
+        response = requests.get(url)
+        if response.status_code == 200:
+            data = response.json()
+            loc = data.get('loc', '').split(',')
+            latitude, longitude = loc if len(loc) == 2 else (None, None)
+            return latitude, longitude
+        else:
+            st.warning(f"Failed to fetch location data for IP: {ip_address}. Status code: {response.status_code}")
+            return None, None
+    except Exception as e:
+        st.error(f"Error fetching location data for IP {ip_address}: {str(e)}")
+        return None, None
 
 # Initialize session state for user IP if it doesn't exist
 if 'user_ip' not in st.session_state:
@@ -550,8 +576,8 @@ if user_lat and user_lon:
     
     # Define the initial view state
     view_state = pdk.ViewState(
-        latitude=user_lat,
-        longitude=user_lon,
+        latitude=float(user_lat),
+        longitude=float(user_lon),
         zoom=11,
         pitch=0
     )
@@ -559,7 +585,7 @@ if user_lat and user_lon:
     # Define the layer to add to the map
     layer = pdk.Layer(
         "ScatterplotLayer",
-        data=[{"position": [user_lon, user_lat]}],
+        data=[{"position": [float(user_lon), float(user_lat)]}],
         get_position="position",
         get_color=[255, 0, 0, 200],
         get_radius=1000,
