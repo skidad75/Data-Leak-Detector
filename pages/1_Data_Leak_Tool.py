@@ -8,7 +8,6 @@ from urllib.parse import urljoin, urlparse
 import subprocess
 import time
 import socket
-from bs4 import BeautifulSoup
 import ssl
 import OpenSSL
 import io
@@ -284,6 +283,39 @@ def detect_data_leaks(text):
             leaks[leak_type] = matches[:10]  # Limit to first 10 matches
     
     return leaks
+
+# Add this function to check if BeautifulSoup is available
+def is_beautifulsoup_available():
+    try:
+        from bs4 import BeautifulSoup
+        return True
+    except ImportError:
+        return False
+
+# Modify the functions that use BeautifulSoup
+def parse_html(html_content):
+    if is_beautifulsoup_available():
+        from bs4 import BeautifulSoup
+        soup = BeautifulSoup(html_content, 'html.parser')
+        return soup
+    else:
+        st.warning("BeautifulSoup is not available. Some features may be limited.")
+        return None
+
+# Update other functions that use BeautifulSoup
+def extract_emails(url, html_content):
+    emails = set()
+    if is_beautifulsoup_available():
+        soup = parse_html(html_content)
+        if soup:
+            # Existing email extraction logic
+            email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+            emails = set(re.findall(email_regex, str(soup)))
+    else:
+        # Fallback to regex-only method if BeautifulSoup is not available
+        email_regex = r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        emails = set(re.findall(email_regex, html_content))
+    return emails
 
 def load_data(url, max_depth):
     emails = set()
