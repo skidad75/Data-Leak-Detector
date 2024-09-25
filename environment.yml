@@ -12,6 +12,7 @@ dependencies:
   - pyopenssl
   - geoip2
   - sqlite
+  - folium
   - pip
   - pip:
     - fpdf
