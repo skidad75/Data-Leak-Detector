@@ -12,36 +12,56 @@ st.set_page_config(page_title="Wall of Sheep", page_icon="🐑", layout="wide")
 
 # Database functions
 def get_database_connection():
-    return sqlite3.connect('/mount/src/data-leak-detector/search_history.db', check_same_thread=False)
+    try:
+        return sqlite3.connect('/mount/src/data-leak-detector/search_history.db', check_same_thread=False)
+    except sqlite3.Error as e:
+        st.error(f"Error connecting to database: {e}")
+        return None
 
 def initialize_database():
     conn = get_database_connection()
-    cursor = conn.cursor()
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS searches (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT,
-        ip_address TEXT,
-        url TEXT,
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-    )
-    ''')
-    conn.commit()
-    conn.close()
+    if conn is not None:
+        try:
+            cursor = conn.cursor()
+            cursor.execute('''
+            CREATE TABLE IF NOT EXISTS searches (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT,
+                ip_address TEXT,
+                url TEXT,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            )
+            ''')
+            conn.commit()
+        except sqlite3.Error as e:
+            st.error(f"Error initializing database: {e}")
+        finally:
+            conn.close()
 
 @st.cache_data(ttl=5)  # Cache for 5 seconds
 def load_search_data():
     initialize_database()
     conn = get_database_connection()
-    query = '''
-        SELECT ip_address, url, timestamp
-        FROM searches
-        ORDER BY timestamp DESC
-        LIMIT 100  # Increased limit to ensure we have enough public IPs
-    '''
-    df = pd.read_sql_query(query, conn)
-    conn.close()
-    return df
+    if conn is None:
+        return pd.DataFrame()  # Return an empty DataFrame if connection fails
+    
+    try:
+        query = '''
+            SELECT ip_address, url, timestamp
+            FROM searches
+            ORDER BY timestamp DESC
+            LIMIT 100
+        '''
+        df = pd.read_sql_query(query, conn)
+        return df
+    except pd.io.sql.DatabaseError as e:
+        st.error(f"Error executing SQL query: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame on error
+    except Exception as e:
+        st.error(f"Unexpected error: {e}")
+        return pd.DataFrame()  # Return an empty DataFrame on error
+    finally:
+        conn.close()
 
 def is_public_ip(ip_address):
     try:
@@ -77,7 +97,7 @@ st.title("Wall of Sheep 🐑")
 data = load_search_data()
 
 if data.empty:
-    st.info("No search data available. Run some searches from the Data Leak Tool page to populate this table.")
+    st.info("No search data available or error occurred while fetching data. Check the error messages above or run some searches from the Data Leak Tool page to populate this table.")
 else:
     # Filter out private IP addresses
     data = data[data['ip_address'].apply(is_public_ip)]
