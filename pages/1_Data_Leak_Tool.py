@@ -43,10 +43,19 @@ if 'analysis_results' not in st.session_state:
 if 'analysis_progress' not in st.session_state:
     st.session_state.analysis_progress = 0
 
+def get_public_ip():
+    try:
+        response = requests.get('https://api.ipify.org')
+        return response.text
+    except:
+        return "Unknown"
+
 # At the beginning of your app
 if 'user_ip' not in st.session_state:
-    headers = _get_websocket_headers()
-    st.session_state.user_ip = headers.get("X-Forwarded-For", "Unknown")
+    st.session_state.user_ip = get_public_ip()
+
+# In the sidebar
+st.sidebar.warning(f"Your IP address: {st.session_state.user_ip}")
 
 def is_valid(url):
     parsed = urlparse(url)
@@ -516,13 +525,12 @@ def initialize_database():
     conn.close()
     st.success("Database initialized successfully")
 
-def log_search(ip_address, url):
+def log_search(url):
     conn = get_database_connection()
     cursor = conn.cursor()
-    cursor.execute('INSERT INTO searches (ip_address, url) VALUES (?, ?)', (ip_address, url))
+    cursor.execute('INSERT INTO searches (ip_address, url) VALUES (?, ?)', (st.session_state.user_ip, url))
     conn.commit()
     conn.close()
-    st.success(f"Search logged: IP={ip_address}, URL={url}")
 
 def get_location(ip_address):
     try:
@@ -594,7 +602,7 @@ if st.button("Run Analysis", key="run_analysis_button"):
     if url:
         with st.spinner("Analyzing... This may take a few minutes."):
             # Log the search
-            log_search(st.session_state.user_ip, url)
+            log_search(url)
             
             # Perform the analysis
             emails, login_pages, console_pages, security_info, data_leaks = load_data(url, max_depth)
