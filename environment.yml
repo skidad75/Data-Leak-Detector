@@ -12,9 +12,8 @@ dependencies:
   - pyopenssl
   - geoip2
   - fpdf
-  - python-nmap
   - ipinfo=3.0.0
-  - ipaddress
+  - safety
   - pydeck
   - pip
   - pip:
