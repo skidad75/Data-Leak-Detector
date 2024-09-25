@@ -19,6 +19,14 @@ import pydeck as pdk
 from datetime import datetime
 import ipaddress
 
+# Initialize session state variables
+if 'analysis_run' not in st.session_state:
+    st.session_state.analysis_run = False
+if 'analysis_progress' not in st.session_state:
+    st.session_state.analysis_progress = 0.0
+if 'user_ip' not in st.session_state:
+    st.session_state.user_ip = get_public_ip()
+
 # Set page config
 st.set_page_config(page_title="Data Leak Tool", page_icon="🕵️", layout="wide")
 
@@ -31,10 +39,6 @@ def get_public_ip():
         return response.text
     except:
         return "Unknown"
-
-# Initialize session state for user IP if it doesn't exist
-if 'user_ip' not in st.session_state:
-    st.session_state.user_ip = get_public_ip()
 
 # In the sidebar
 st.sidebar.warning(f"Your IP address: {st.session_state.user_ip}")
@@ -587,7 +591,7 @@ if st.button("Run Analysis"):
         st.error("Please enter a URL to scan.")
 
 # CSV generation button
-if st.session_state.analysis_run and st.session_state.analysis_progress >= 0.8:
+if st.session_state.get('analysis_run', False) and st.session_state.get('analysis_progress', 0.0) >= 0.8:
     if st.button("Generate CSV Report"):
         try:
             results = st.session_state.analysis_results
