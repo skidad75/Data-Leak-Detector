@@ -7,14 +7,21 @@ import re
 import ipaddress
 import pydeck as pdk
 import numpy as np
+import os
 
 # Set page config
 st.set_page_config(page_title="Wall of Sheep", page_icon="🐑", layout="wide")
 
 # Database functions
 def get_database_connection():
+    db_path = '/mount/src/data-leak-detector/search_history.db'
     try:
-        return sqlite3.connect('/mount/src/data-leak-detector/search_history.db', check_same_thread=False)
+        if not os.path.exists(db_path):
+            st.error(f"Database file does not exist at {db_path}")
+            return None
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        st.success(f"Successfully connected to database at {db_path}")
+        return conn
     except sqlite3.Error as e:
         st.error(f"Error connecting to database: {e}")
         return None
@@ -34,6 +41,12 @@ def initialize_database():
             )
             ''')
             conn.commit()
+            st.success("Database initialized successfully")
+            
+            # Check if the table is empty
+            cursor.execute("SELECT COUNT(*) FROM searches")
+            count = cursor.fetchone()[0]
+            st.write(f"Number of rows in searches table: {count}")
         except sqlite3.Error as e:
             st.error(f"Error initializing database: {e}")
         finally:
@@ -55,7 +68,19 @@ def load_search_data():
             LIMIT 100
         '''
         df = pd.read_sql_query(query, conn)
-        st.write(f"Loaded {len(df)} rows from the database")  # Debug statement
+        st.write(f"Loaded {len(df)} rows from the database")
+        
+        # If DataFrame is empty, check if the table exists and has data
+        if df.empty:
+            cursor = conn.cursor()
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='searches'")
+            if cursor.fetchone():
+                cursor.execute("SELECT COUNT(*) FROM searches")
+                count = cursor.fetchone()[0]
+                st.write(f"The 'searches' table exists and contains {count} rows")
+            else:
+                st.error("The 'searches' table does not exist in the database")
+        
         return df
     except pd.io.sql.DatabaseError as e:
         st.error(f"Error executing SQL query: {e}")
