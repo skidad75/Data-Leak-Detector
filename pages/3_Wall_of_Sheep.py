@@ -44,6 +44,7 @@ def load_search_data():
     initialize_database()
     conn = get_database_connection()
     if conn is None:
+        st.error("Database connection failed")
         return pd.DataFrame()  # Return an empty DataFrame if connection fails
     
     try:
@@ -54,6 +55,7 @@ def load_search_data():
             LIMIT 100
         '''
         df = pd.read_sql_query(query, conn)
+        st.write(f"Loaded {len(df)} rows from the database")  # Debug statement
         return df
     except pd.io.sql.DatabaseError as e:
         st.error(f"Error executing SQL query: {e}")
@@ -100,11 +102,15 @@ page = st.sidebar.radio("Go to", ["Recent Searches", "Map View", "Statistics"])
 st.title("Wall of Sheep 🐑")
 data = load_search_data()
 
+st.write(f"Initial data shape: {data.shape}")  # Debug statement
+
 if data.empty:
     st.info("No search data available or error occurred while fetching data. Check the error messages above or run some searches from the Data Leak Tool page to populate this table.")
 else:
     # Filter out private IP addresses
     data = data[data['ip_address'].apply(is_public_ip)]
+    
+    st.write(f"Data shape after filtering private IPs: {data.shape}")  # Debug statement
     
     if data.empty:
         st.info("No public IP addresses found in the recent searches.")
@@ -115,8 +121,12 @@ else:
         data['location'] = data.apply(lambda row: f"{row['city']}, {row['region']}, {row['country']}" if row['city'] else "Unknown", axis=1)
         data['timestamp'] = pd.to_datetime(data['timestamp'])
 
+        st.write(f"Data shape after adding location info: {data.shape}")  # Debug statement
+
         # Filter out rows with unknown locations
         data = data[data['location'] != "Unknown, Unknown, Unknown"]
+
+        st.write(f"Final data shape: {data.shape}")  # Debug statement
 
         if data.empty:
             st.info("No location data available for public IP addresses.")
